@@ -1,0 +1,117 @@
+package com.enn.noticesystem.service;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.enn.noticesystem.domain.ScheduleJob;
+import com.enn.noticesystem.domain.vo.ScheduleJobVO;
+
+import java.util.List;
+
+/**
+ *  @author liyanfei
+ *  @date 20/05/22 9:42
+ *  @description 任务调度服务
+ *
+ */
+public interface ScheduleJobService extends IService<ScheduleJob> {
+//     任务管理相关
+    /**
+    * @todo 新增任务
+    * @date 20/05/22 9:43
+    * @param job 被调度的任务
+    * @return
+    *
+    */
+    Integer add(ScheduleJob job);
+
+    /**
+    * @todo 更新任务
+    * @date 20/05/22 9:50
+    * @param
+    * @return
+    *
+    */
+    Boolean update(ScheduleJob job);
+
+    /**
+     * @todo 删除定时任务（逻辑删除）
+     * @date 20/05/22 9:44
+     * @param
+     * @return
+     *
+     */
+    Boolean delete(int id);
+    /**
+    * @todo 根据用户id、调度任务名，列出调度任务列表
+    * @date 20/05/22 9:54
+    * @param
+    * @return
+    *
+    */
+    List<ScheduleJob> listScheduleJobsByName(String userId,String name);
+
+    /**
+     * @todo 计算用户 创建任务的总个数
+     * @date 20/05/21 17:53
+     * @param 用户id
+     * @return
+     *
+     */
+    Integer calRecordsByType(String userId);
+    /**s
+    * @todo 根据用户id、page信息，进行分页
+    * @date 20/05/22 10:54
+    * @param
+    * @return
+    *
+    */
+    IPage<ScheduleJob> listSchedulesJobsByPage(IPage<ScheduleJob> page,String userId);
+
+    /**
+    * @todo 根据id 获取任务详细信息
+    * @date 20/05/22 15:53
+    * @param
+    * @return
+    */
+    ScheduleJobVO getScheduleJobById(String id);
+
+//    任务执行相关
+
+    /**
+     * @todo 启动定时任务
+     * @date 20/05/22 9:44
+     * @param
+     * @return
+     *
+     */
+    void start(int id);
+
+    /**
+    * @todo 暂停定时任务
+    * @date 20/05/22 9:44
+    * @param
+    * @return
+    *
+    */
+    void pause(int id);
+
+    /**
+    * @todo 启动所有定时任务
+    * @date 20/05/22 9:45
+    * @param
+    * @return
+    *
+    */
+    void startAllJob();
+
+    /**
+    * @todo 暂停所有定时任务
+    * @date 20/05/22 9:45
+    * @param
+    * @return
+    *
+    */
+    void pauseAllJob();
+
+
+}
