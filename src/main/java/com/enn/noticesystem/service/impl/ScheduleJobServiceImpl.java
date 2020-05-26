@@ -10,13 +10,19 @@ import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
 import com.enn.noticesystem.service.QuartzService;
 import com.enn.noticesystem.service.ScheduleJobService;
+import com.enn.noticesystem.service.job.WebhookJob;
+import com.enn.noticesystem.util.CronUtil;
+import com.enn.noticesystem.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.interfaces.RSAKey;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -36,7 +42,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
 
     @Override
     public Integer add(ScheduleJob job) {
-        log.info("添加调度任务："+job.getName());
+        log.info("添加调度任务：" + job.getName());
         //此处省去数据验证
         boolean res = this.save(job);
 
@@ -49,73 +55,133 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
 //            e.printStackTrace();
 //        }
 
-        if(res){
+        if (res) {
             return job.getId();
-        }else{
+        } else {
             return -1;
         }
     }
 
     @Override
     public Boolean update(ScheduleJob job) {
-        log.info("更新调度任务："+job.getName());
+        log.info("更新调度任务：" + job.getName());
         boolean res = this.updateById(job);
         return res;
     }
 
     @Override
-    public void start(int id) {
-        //此处省去数据验证
-        ScheduleJob job = this.getById(id);
-        job.setStatus(1);
-        this.updateById(job);
-
-        //执行job
+    public Map<String, Object> start(int id) {
+        Map<String, Object> mp = new HashMap<>();
+        Boolean res = false;
+        String info = "";
+        ScheduleJob job = this.getScheduleJobById(id);
         try {
-            quartzService.operateJob(JobOperateEnum.START, job);
-        } catch (SchedulerException e) {
+            //判断首次启动还是恢复任务
+            if (0 == job.getStatus()) {
+                quartzService.addJob(job);
+                //修改任务状态
+                job.setStatus(1);
+                this.update(job);
+                res = true;
+                info = "启动成功";
+            } else if (1 == job.getStatus()) {
+                //任务已启动
+                res = false;
+                info = "重复启动任务";
+            } else {
+                quartzService.operateJob(JobOperateEnum.START, job);
+                //修改任务状态
+                job.setStatus(1);
+                this.update(job);
+                res = true;
+                info = "恢复任务成功";
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
+            log.info("启动任务异常：" + e.getMessage());
+            info = "启动任务失败";
+        } finally {
+            mp.put("res", res);
+            mp.put("info", info);
+            return mp;
         }
     }
 
     @Override
-    public void pause(int id) {
-        //此处省去数据验证
-        ScheduleJob job = this.getById(id);
-        job.setStatus(2);
-        this.updateById(job);
-
-        //执行job
+    public Map<String, Object> pause(int id) {
+        Map<String, Object> mp = new HashMap<>();
+        Boolean res = false;
+        String info = "";
+        ScheduleJob job = this.getScheduleJobById(id);
         try {
-            quartzService.operateJob(JobOperateEnum.PAUSE, job);
+            if (2 == job.getStatus()) {
+                info = "任务已暂停,重复暂停";
+            } else {
+                quartzService.operateJob(JobOperateEnum.PAUSE, job);
+                //修改任务状态
+                job.setStatus(2);
+                this.update(job);
+                res = true;
+            }
         } catch (SchedulerException e) {
+            log.info("任务暂停异常:" + e.getMessage());
             e.printStackTrace();
+        } finally {
+            mp.put("res", res);
+            mp.put("info", info);
+            return mp;
         }
     }
 
     @Override
-    public Boolean delete(int id) {
+    public Map<String, Object> delete(int id) {
+        Map<String,Object> mp = new HashMap<>();
+        Boolean res = false;
+        String info = "";
         //此处省去数据验证
-        ScheduleJob job = this.getById(id);
-
-        //任务暂停后，才允许删除
+        ScheduleJob job = this.getScheduleJobById(id);
+        log.info("删除任务 " + job.getId());
 
         //执行job
         try {
-            quartzService.operateJob(JobOperateEnum.DELETE, job);
+            //任务暂停后，才允许删除
+            if (1 == job.getStatus()) {
+                info = "暂停任务后，才能删除";
+            } else if (0 == job.getStatus()) {
+                info = "任务创建后未启动";
+                res = this.removeById(id);
+            } else {
+                quartzService.operateJob(JobOperateEnum.DELETE, job);
+                res = this.removeById(id);
+                info = "删除成功";
+            }
         } catch (SchedulerException e) {
+            log.info("删除任务异常："+e.getMessage());
+            info = "删除失败";
             e.printStackTrace();
+        }finally {
+            mp.put("res", res);
+            mp.put("info", info);
+            return mp;
         }
 
-        boolean res = this.removeById(id);
-        return  res;
+    }
+
+    @Override
+    public ScheduleJob getScheduleJobById(Integer id) {
+        //验证用户信息
+
+        ScheduleJob job = this.getById(id);
+        log.info("获取调度任务obj:" + job.toString());
+        return job;
     }
 
     @Override
     public List<ScheduleJob> listScheduleJobsByName(String userId, String name) {
-        log.info("查询ScheduleJob:"+name);
+        log.info("查询ScheduleJob:" + name);
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        scheduleJobLambdaQueryWrapper.and(lqw->lqw.eq(ScheduleJob::getCreatorId ,userId ).eq(ScheduleJob::getName ,name ));
+        scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId).eq(ScheduleJob::getName, name));
         List<ScheduleJob> list = this.list(scheduleJobLambdaQueryWrapper);
         return list;
     }
@@ -123,25 +189,54 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     @Override
     public Integer calRecordsByType(String userId) {
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        scheduleJobLambdaQueryWrapper.and(lqw->lqw.eq(ScheduleJob::getCreatorId , userId));
+        scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId));
         int count = this.count(scheduleJobLambdaQueryWrapper);
         return count;
     }
 
     @Override
     public IPage<ScheduleJob> listSchedulesJobsByPage(IPage<ScheduleJob> page, String userId) {
-        log.info("获取用id="+userId+" job的分页信息");
+        log.info("获取用id=" + userId + " job的分页信息");
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        scheduleJobLambdaQueryWrapper.and(lqw->lqw.eq(ScheduleJob::getCreatorId , userId));
+        scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId));
         IPage<ScheduleJob> res = this.page(page, scheduleJobLambdaQueryWrapper);
         return res;
     }
 
     @Override
-    public ScheduleJobVO getScheduleJobById(String id) {
-        log.info("获取id="+id+"的job的详细信息");
+    public ScheduleJobVO getScheduleJobVOById(Integer id) {
+        log.info("获取id=" + id + "的job的详细信息");
         ScheduleJobVO scheduleJobDetail = this.getBaseMapper().getScheduleJobDetail(id);
         return scheduleJobDetail;
+    }
+
+    @Override
+    public ScheduleJob setServiceAndMethod(ScheduleJob scheduleJob) {
+        int typeId = scheduleJob.getPushChannelType();
+        if (1 == typeId) {
+            //企业微信机器人
+            scheduleJob.setServiceName(WebhookJob.class.getSimpleName());
+            scheduleJob.setMethodName("execute");
+        } else if (2 == typeId) {
+            //短信
+        } else if (3 == typeId) {
+            //站内信
+        } else {
+            //邮件
+        }
+
+        return scheduleJob;
+    }
+
+    @Override
+    public ScheduleJob setCronExpression(ScheduleJob scheduleJob) {
+        String cronJson = scheduleJob.getCronExpression();
+
+        Map<String, String> hashMap = (Map<String, String>) JsonUtil.getObj(cronJson);
+//        {"period":"week","repeat":"2","time":"22:09:18"}
+        String cronExp = CronUtil.genCronSingle(hashMap.get("period"), hashMap.get("time"), hashMap.get("repeat"));
+        scheduleJob.setCronExpression(cronExp);
+        return null;
     }
 
 

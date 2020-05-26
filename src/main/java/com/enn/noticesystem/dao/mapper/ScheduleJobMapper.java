@@ -25,5 +25,5 @@ public interface ScheduleJobMapper extends BaseMapper<ScheduleJob> {
             "\tLEFT JOIN ns_msg_template template ON job.msg_template_id = template.id\n" +
             "\tLEFT JOIN ns_push_channel channel ON job.push_channel_id = channel.id\n" +
             "WHERE\tjob.id=#{id}")
-    ScheduleJobVO getScheduleJobDetail(String id);
+    ScheduleJobVO getScheduleJobDetail(Integer id);
 }

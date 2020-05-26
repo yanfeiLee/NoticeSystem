@@ -21,8 +21,8 @@ public class QuartzFactory implements Job {
         Object object = SpringUtil.getBean(scheduleJob.getServiceName());
         try {
             //利用反射执行对应方法
-            Method method = object.getClass().getMethod(scheduleJob.getMethodName());
-            method.invoke(object);
+            Method method = object.getClass().getMethod(scheduleJob.getMethodName(),String.class);
+            method.invoke(object,scheduleJob.getId().toString());
         } catch (Exception e) {
             e.printStackTrace();
         }

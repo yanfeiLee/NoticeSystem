@@ -7,10 +7,7 @@ import com.enn.noticesystem.domain.MsgTemplate;
 import com.enn.noticesystem.domain.PushChannel;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
-import com.enn.noticesystem.service.MsgTemplateService;
-import com.enn.noticesystem.service.PushChannelService;
-import com.enn.noticesystem.service.RuyiService;
-import com.enn.noticesystem.service.ScheduleJobService;
+import com.enn.noticesystem.service.*;
 import com.enn.noticesystem.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,16 +20,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *  @author liyanfei
- *  @date 20/05/18 17:43
- *  @description 定时任务测试控制器
- *
+ * @author liyanfei
+ * @date 20/05/18 17:43
+ * @description 定时任务测试控制器
  */
 @RestController
 @RequestMapping("job")
 @Slf4j
 public class ScheduleJobController {
-    private HashMap<Object ,Object> res = new HashMap<>();
+    private HashMap<Object, Object> res = new HashMap<>();
 
     @Autowired
     private ScheduleJobService scheduleJobService;
@@ -42,30 +38,31 @@ public class ScheduleJobController {
     PushChannelService pushChannelService;
     @Autowired
     MsgTemplateService msgTemplateService;
-
+    @Autowired
+    QuartzService quartzService;
 
     //获取请求的头信息
     @Autowired
     HttpServletRequest httpServletRequest;
 
     @PostMapping("addV/type/{type}")
-    public String addV(@PathVariable("type") String type,@RequestBody Map<String,String> reqMap){
+    public String addV(@PathVariable("type") String type, @RequestBody Map<String, String> reqMap) {
         res.clear();
         //准备添加页面需要的数据
-        if(type.equals("1")){
+        if (type.equals("1")) {
             //机器人
             //获取用户id
-            String userId="1";
+            String userId = "1";
             List<PushChannel> pushChannels = pushChannelService.listChannelsByType(userId, type);
             List<MsgTemplate> msgTemplates = msgTemplateService.listTemplatesByType(userId, type);
             res.put("pushChannels", pushChannels);
             res.put("msgTemplates", msgTemplates);
 
-        } else if(type.equals("2")){
+        } else if (type.equals("2")) {
 
-        }else if(type.equals("3")){
+        } else if (type.equals("3")) {
 
-        }else if(type.equals("4")){
+        } else if (type.equals("4")) {
 
         }
 
@@ -75,7 +72,11 @@ public class ScheduleJobController {
 
     @PostMapping("add")
     public String add(@RequestBody ScheduleJob scheduleJob) {
-        //任务格式校验
+
+        //1.根据任务类型，设置调度执行时调用的service和method
+        scheduleJobService.setServiceAndMethod(scheduleJob);
+        //2.转换任务执行时间格式为cron表达式
+        scheduleJobService.setCronExpression(scheduleJob);
 
         //获取用户id
         scheduleJob.setCreatorId(1);
@@ -86,7 +87,7 @@ public class ScheduleJobController {
     }
 
     @PostMapping("update")
-    public String update(@RequestBody ScheduleJob scheduleJob){
+    public String update(@RequestBody ScheduleJob scheduleJob) {
         Boolean resUpdate = scheduleJobService.update(scheduleJob);
 
         res.clear();
@@ -97,14 +98,12 @@ public class ScheduleJobController {
     @GetMapping("del/{id}")
     public String delete(@PathVariable("id") String id) {
 
-        Boolean resDel = scheduleJobService.delete(Integer.valueOf(id));
-        res.clear();
-        res.put("res", resDel);
-        return JsonUtil.getString(res);
+        Map<String, Object> resDel = scheduleJobService.delete(Integer.valueOf(id));
+        return JsonUtil.getString(resDel);
     }
 
     @GetMapping("name/{name}")
-    public String getJobsByName(@PathVariable("name")String name){
+    public String getJobsByName(@PathVariable("name") String name) {
 
         //获取用户名
         String userId = "1";
@@ -116,13 +115,13 @@ public class ScheduleJobController {
     }
 
     @GetMapping("p/{pageNo}/s/{size}")
-    public String getJobsByPage(@PathVariable("pageNo")String pageNo,
-                                    @PathVariable( "size") String size){
+    public String getJobsByPage(@PathVariable("pageNo") String pageNo,
+                                @PathVariable("size") String size) {
         //获取用户id
         String userId = "1";
 
         Page<ScheduleJob> scheduleJobPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
-        IPage<ScheduleJob> page = scheduleJobService.listSchedulesJobsByPage(scheduleJobPage,userId);
+        IPage<ScheduleJob> page = scheduleJobService.listSchedulesJobsByPage(scheduleJobPage, userId);
         List<ScheduleJob> records = page.getRecords();
         res.clear();
         res.put("countTotal", scheduleJobService.calRecordsByType(userId));
@@ -132,25 +131,27 @@ public class ScheduleJobController {
     }
 
     @GetMapping("id/{id}")
-    public String getJobById(@PathVariable("id") String id){
-        log.info("获取id="+id+"的任务详细信息");
-        log.info("请求信息"+httpServletRequest.getRequestURI()+"||"+httpServletRequest.getHeader("test"));
-        ScheduleJobVO scheduleJobById = scheduleJobService.getScheduleJobById(id);
+    public String getJobById(@PathVariable("id") String id) {
+        log.info("获取id=" + id + "的任务详细信息");
+        log.info("请求信息" + httpServletRequest.getRequestURI() + "||" + httpServletRequest.getHeader("test"));
+        ScheduleJobVO scheduleJobById = scheduleJobService.getScheduleJobVOById(Integer.valueOf(id));
         res.clear();
         res.put("content", scheduleJobById);
         return JsonUtil.getString(res);
     }
-//    任务执行相关
-    @GetMapping("start/{id}")
-    public String start(@PathVariable("id") Integer id) {
 
-        return "启动定时任务成功";
+    //   任务执行相关
+    @GetMapping("start/{id}")
+    public String start(@PathVariable("id") String id) {
+        //启动任务
+        Map<String, Object> resMp = scheduleJobService.start(Integer.valueOf(id));
+        return JsonUtil.getString(resMp);
     }
 
     @GetMapping("pause/{id}")
-    public String pause(@PathVariable("id") Integer id) {
-
-        return "暂停定时任务成功";
+    public String pause(@PathVariable("id") String id) {
+        Map<String, Object> resPause = scheduleJobService.pause(Integer.valueOf(id));
+        return JsonUtil.getString(resPause);
     }
 
     @GetMapping("startAllJob")

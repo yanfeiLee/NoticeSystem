@@ -121,12 +121,12 @@ public class ScheduleJobVO implements Serializable {
     /**
      *  机器人webhook地址
      */
-//    private String channelRobotWebhook;
-//
-//    /**
-//     *  模板名
-//     */
-//    private String templateName;
+    private String channelRobotWebhook;
+
+    /**
+     *  模板名
+     */
+    private String templateName;
     /**
      *  机器人推送模板-json格式字符串
      */

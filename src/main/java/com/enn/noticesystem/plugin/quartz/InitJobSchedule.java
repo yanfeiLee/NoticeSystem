@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 //CommandLineRunner 在springBoot启动时，会调用
 @Component
-public class JobSchedule implements CommandLineRunner {
+public class InitJobSchedule implements CommandLineRunner {
 
     @Autowired
     private QuartzService taskService;

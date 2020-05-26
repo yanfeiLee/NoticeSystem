@@ -6,16 +6,19 @@ import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.plugin.quartz.QuartzFactory;
 import com.enn.noticesystem.service.QuartzService;
 import com.enn.noticesystem.service.ScheduleJobService;
+import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 
 
 @Service
 @Transactional
+@Slf4j
 public class QuartzServiceImpl implements QuartzService {
 
     /**
@@ -36,13 +39,17 @@ public class QuartzServiceImpl implements QuartzService {
 //            //如果任务停止，则不启动
 //            scheduleJobs.forEach(this::addJob);
 //        }
+        log.info("系统启动时，初始化执行的任务。。。");
     }
 
     @Override
     public void addJob(ScheduleJob job) {
+        //生成任务key
+        String jobKey = job.getId() + "-" + job.getName();
         try {
             //创建触发器
-            Trigger trigger = TriggerBuilder.newTrigger().withIdentity(job.getName())
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .withIdentity(jobKey)
                     .withSchedule(CronScheduleBuilder
                             .cronSchedule(job.getCronExpression())
                             .withMisfireHandlingInstructionDoNothing() //启动任务时不直接运行，而是等到下一个周期时执行
@@ -56,32 +63,34 @@ public class QuartzServiceImpl implements QuartzService {
                     .build();
 
             //传入调度的数据，在QuartzFactory中需要使用
-            jobDetail.getJobDataMap().put("scheduleJob", job);
-
+             jobDetail.getJobDataMap().put("scheduleJob", job);
 
             //调度作业
-            scheduler.scheduleJob(jobDetail, trigger);
-
+           scheduler.scheduleJob(jobDetail, trigger);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void operateJob(JobOperateEnum jobOperateEnum, ScheduleJob job) throws SchedulerException {
-        JobKey jobKey = new JobKey(job.getName());
+    public void operateJob(JobOperateEnum jobOperateEnum,ScheduleJob job) throws SchedulerException {
+        String jobIdentify = job.getId() + "-" + job.getName();
+        JobKey jobKey = new JobKey(jobIdentify);
         JobDetail jobDetail = scheduler.getJobDetail(jobKey);
         if (jobDetail == null) {
-            //抛异常
+            log.info("任务异常: "+jobIdentify+"不存在");
         }
         switch (jobOperateEnum) {
             case START:
+                log.info("恢复任务:"+jobIdentify);
                 scheduler.resumeJob(jobKey);
                 break;
             case PAUSE:
+                log.info("暂停任务:"+jobIdentify);
                 scheduler.pauseJob(jobKey);
                 break;
             case DELETE:
+                log.info("删除任务:"+jobIdentify);
                 scheduler.deleteJob(jobKey);
                 break;
         }

@@ -1,8 +1,10 @@
 package com.enn.noticesystem.util;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 
 import javax.management.ObjectName;
+import java.util.Map;
 
 /**
  * Project: NoticeSystem
@@ -31,6 +33,15 @@ public class JsonUtil {
     public static Object getObj(String jsonStr){
         if(checkJsonStr(jsonStr)){
             return JSON.parseObject(jsonStr);
+        }else{
+            return null;
+        }
+    }
+
+
+    public static Map<String,Object> getMap(String jsonStr){
+        if(checkJsonStr(jsonStr)){
+             return (Map<String, Object>) JSONObject.parse(jsonStr);
         }else{
             return null;
         }

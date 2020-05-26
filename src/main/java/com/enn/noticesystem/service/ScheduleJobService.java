@@ -6,6 +6,7 @@ import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  *  @author liyanfei
@@ -40,7 +41,7 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
      * @return
      *
      */
-    Boolean delete(int id);
+    Map<String,Object> delete(int id);
     /**
     * @todo 根据用户id、调度任务名，列出调度任务列表
     * @date 20/05/22 9:54
@@ -48,6 +49,15 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
     * @return
     *
     */
+    /**
+    * @todo 根据jobId获取 job信息（不包含外键相关信息）
+    * @date 20/05/26 15:32
+    * @param
+    * @return
+    *
+    */
+    ScheduleJob getScheduleJobById(Integer id);
+
     List<ScheduleJob> listScheduleJobsByName(String userId,String name);
 
     /**
@@ -73,7 +83,25 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
     * @param
     * @return
     */
-    ScheduleJobVO getScheduleJobById(String id);
+    ScheduleJobVO getScheduleJobVOById(Integer id);
+    /**
+    * @todo 根据job的推送渠道类型，设置执行的service和method
+    * @date 20/05/26 14:47
+    * @param scheduleJob 任务信息
+    * @return
+    *
+    */
+    ScheduleJob setServiceAndMethod(ScheduleJob scheduleJob);
+
+    /**
+    * @todo 根据用户提交的任务执行时间信息，转换为cron表达式
+    * 前端将定时任务的时间{"period":"week","repeat":"2","time":"22:09:18"}，转为corntab 格式
+    * @date 20/05/26 15:15
+    * @param scheduleJob 任务信息
+    * @return
+    *
+    */
+    ScheduleJob setCronExpression(ScheduleJob scheduleJob);
 
 //    任务执行相关
 
@@ -84,7 +112,7 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
      * @return
      *
      */
-    void start(int id);
+    Map<String,Object> start(int id);
 
     /**
     * @todo 暂停定时任务
@@ -93,7 +121,7 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
     * @return
     *
     */
-    void pause(int id);
+    Map<String,Object> pause(int id);
 
     /**
     * @todo 启动所有定时任务
