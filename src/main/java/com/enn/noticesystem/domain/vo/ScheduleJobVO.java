@@ -84,6 +84,11 @@ public class ScheduleJobVO implements Serializable {
     private int execStatus;
 
     /**
+     *  任务上次成功执行时间
+     */
+    private LocalDateTime lastExecTime;
+
+    /**
      * 是否删除 0.否 1.是
      */
     @TableField(fill = FieldFill.INSERT)

@@ -123,6 +123,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
                 job.setStatus(2);
                 this.update(job);
                 res = true;
+                info="暂停成功";
             }
         } catch (SchedulerException e) {
             log.info("任务暂停异常:" + e.getMessage());

@@ -1,6 +1,7 @@
 package com.enn.noticesystem.service.impl;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.enn.noticesystem.constant.JobOperateEnum;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.plugin.quartz.QuartzFactory;
@@ -34,32 +35,49 @@ public class QuartzServiceImpl implements QuartzService {
     @Override
     public void timingTask() {
         //系统重启或首次启动时查询数据库是否存在需要定时的任务
-//        List<ScheduleJob> scheduleJobs = jobService.list();
-//        if (scheduleJobs != null) {
-//            //如果任务停止，则不启动
-//            scheduleJobs.forEach(this::addJob);
-//        }
-        log.info("系统启动时，初始化执行的任务。。。");
+        //启动status=1（运行中）的任务，
+        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        scheduleJobLambdaQueryWrapper.and(
+                lqw->lqw.ne(ScheduleJob::getStatus, "0")
+        );
+        List<ScheduleJob> scheduleJobs = jobService.list(scheduleJobLambdaQueryWrapper);
+        if (scheduleJobs != null) {
+            //如果任务停止，则不启动
+            for (ScheduleJob job : scheduleJobs) {
+                log.info("初始化定时任务：id="+job.getId());
+                addJob(job);
+                if(job.getStatus()==2){
+                    //将status=2(暂停中)的任务加入调度器，状态置为暂停
+                    try {
+                        operateJob(JobOperateEnum.PAUSE, job);
+                    } catch (SchedulerException e) {
+                        log.info("初始化暂停状态任务失败:jobid="+job.getId());
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        log.info("系统启动时，初始化执行的任务完成");
     }
 
     @Override
     public void addJob(ScheduleJob job) {
         //生成任务key
-        String jobKey = job.getId() + "-" + job.getName();
+        String identifyKey = job.getId() + "-" + job.getName();
         try {
             //创建触发器
             Trigger trigger = TriggerBuilder.newTrigger()
-                    .withIdentity(jobKey)
+                    .withIdentity(identifyKey)
                     .withSchedule(CronScheduleBuilder
                             .cronSchedule(job.getCronExpression())
-                            .withMisfireHandlingInstructionDoNothing() //启动任务时不直接运行，而是等到下一个周期时执行
+                            .withMisfireHandlingInstructionFireAndProceed()// 调度时间点，调度器繁忙没有执行，空闲时立即执行
                     )
+
                     .startNow()
                     .build();
-
             //创建任务
             JobDetail jobDetail = JobBuilder.newJob(QuartzFactory.class)
-                    .withIdentity(job.getName())
+                    .withIdentity(identifyKey)
                     .build();
 
             //传入调度的数据，在QuartzFactory中需要使用
@@ -68,6 +86,7 @@ public class QuartzServiceImpl implements QuartzService {
             //调度作业
            scheduler.scheduleJob(jobDetail, trigger);
         } catch (Exception e) {
+            log.info("启动任务失败，任务id="+identifyKey);
             throw new RuntimeException(e);
         }
     }

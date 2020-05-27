@@ -13,7 +13,6 @@ public class QuartzFactory implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-
         //获取调度数据
         ScheduleJob scheduleJob = (ScheduleJob) jobExecutionContext.getMergedJobDataMap().get("scheduleJob");
 //        jobExecutionContext.

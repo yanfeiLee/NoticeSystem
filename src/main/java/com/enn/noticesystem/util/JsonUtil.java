@@ -22,6 +22,7 @@ public class JsonUtil {
     */
     public static String getString(Object obj){
         return JSON.toJSONString(obj);
+
     }
 
     /**

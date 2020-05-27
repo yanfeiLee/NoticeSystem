@@ -1,12 +1,15 @@
 package com.enn.noticesystem.plugin.quartz;
 
 import com.enn.noticesystem.service.QuartzService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import sun.rmi.runtime.Log;
 
 //CommandLineRunner 在springBoot启动时，会调用
 @Component
+@Slf4j
 public class InitJobSchedule implements CommandLineRunner {
 
     @Autowired
@@ -19,8 +22,8 @@ public class InitJobSchedule implements CommandLineRunner {
      */
     @Override
     public void run(String... strings) throws Exception {
-        System.out.println("任务调度开始==============任务调度开始");
+        log.info("系统启动，初始化定时任务");
         taskService.timingTask();
-        System.out.println("任务调度结束==============任务调度结束");
+        log.info("初始化定时任务结束");
     }
 }

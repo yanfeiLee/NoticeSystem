@@ -81,7 +81,10 @@ public class ScheduleJob {
      *  任务执行状态: 0 未执行 1 成功 2 失败
      */
     private int execStatus;
-
+    /**
+     *  任务上次成功执行时间
+     */
+    private LocalDateTime lastExecTime;
     /**
      * 是否删除 0.否 1.是
      */

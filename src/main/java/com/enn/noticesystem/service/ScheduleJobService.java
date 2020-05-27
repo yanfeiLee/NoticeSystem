@@ -42,13 +42,8 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
      *
      */
     Map<String,Object> delete(int id);
-    /**
-    * @todo 根据用户id、调度任务名，列出调度任务列表
-    * @date 20/05/22 9:54
-    * @param
-    * @return
-    *
-    */
+
+
     /**
     * @todo 根据jobId获取 job信息（不包含外键相关信息）
     * @date 20/05/26 15:32
@@ -58,6 +53,13 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
     */
     ScheduleJob getScheduleJobById(Integer id);
 
+    /**
+     * @todo 根据用户id、调度任务名，列出调度任务列表
+     * @date 20/05/22 9:54
+     * @param
+     * @return
+     *
+     */
     List<ScheduleJob> listScheduleJobsByName(String userId,String name);
 
     /**
