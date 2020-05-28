@@ -41,6 +41,13 @@ public class MsgServiceImpl extends ServiceImpl<MsgMapper,Msg> implements MsgSer
     }
 
     @Override
+    public Msg getMsgById(Integer id) {
+        log.info("获取id="+id+"的消息对象");
+        Msg msg = this.getById(id);
+        return msg;
+    }
+
+    @Override
     public List<Msg> listMsgByJobId(Integer jobId) {
         log.info("获取jobid="+jobId+"的消息");
         LambdaQueryWrapper<Msg> msgLambdaQueryWrapper = new LambdaQueryWrapper<>();

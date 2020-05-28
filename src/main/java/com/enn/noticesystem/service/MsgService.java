@@ -28,6 +28,17 @@ public interface MsgService extends IService<Msg> {
      * @return 成功true,失败false
      */
     boolean update(Msg msg);
+
+    /**
+    * @todo 根据消息 id获取消息对象
+    * @date 20/05/28 13:18
+    * @param
+    * @return
+    *
+    */
+    Msg getMsgById(Integer id);
+
+
     /**
     * @todo 根据jobId,获取所有推送的消息
     * @date 20/05/27 18:46

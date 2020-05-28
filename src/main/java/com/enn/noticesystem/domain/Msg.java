@@ -29,11 +29,6 @@ public class Msg {
      */
     private Integer jobId;
 
-
-    /**
-     *  消息标题
-     */
-    private String title;
     /**
      *  消息内容
      */
