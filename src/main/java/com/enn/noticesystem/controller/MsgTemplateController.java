@@ -34,28 +34,40 @@ public class MsgTemplateController {
 
     private HashMap<Object, Object> res = new HashMap<>();
 
-    @PostMapping("addV/type/{type}")
-    public String addV(@PathVariable("type") String type,@RequestBody Map<String,String> reqMap){
-        String responseStr = "";
+    @GetMapping("addV/type/{type}")
+    public String addV(@PathVariable("type") String type) {
+        Map<String, Object> resMap = new HashMap<>();
         //准备添加页面需要的数据
-        if(type.equals("1")){
+        if (type.equals("1")) {
             //机器人
             //请求如意提供 指标的 所有接口
-            String reqParams2 ="{\"msgtype\":\"text\",\"text\":{\"content\":\"hello world\"}}";
+            //请求参数
+            String reqParams = "{}";
+            resMap = ruyiService.listApis(reqParams);
+            //todo 解析响应体 获取api名称、请求类型、查询数据所需参数 按需返回
 
-            System.out.println(reqMap);
-            String reqParams = JsonUtil.getString(reqMap);
-            log.info(reqParams);
-            responseStr = ruyiService.listApis(reqParams2);
-        } else if(type.equals("2")){
+        } else if (type.equals("2")) {
 
-        }else if(type.equals("3")){
+        } else if (type.equals("3")) {
 
-        }else if(type.equals("4")){
+        } else if (type.equals("4")) {
 
         }
         res.clear();
-        res.put("res",responseStr);
+        res.put("res", resMap);
+        return JsonUtil.getString(res);
+    }
+
+    @GetMapping("addV/type/{type}/api/{id}")
+    public String addV(@PathVariable("type") String type, @PathVariable("api") String id) {
+        res.clear();
+        if (type.equals("1")) {
+            //请求参数
+            String reqParams = "{\"id:\"" + id + "}";
+            //获取meta列表[{"meta":"pv","metaName":"页面访问量"},{}]
+            Map<String, Object> metricsMap = ruyiService.listMetas(reqParams);
+            res.put("metas", metricsMap);
+        }
         return JsonUtil.getString(res);
     }
 
@@ -68,10 +80,10 @@ public class MsgTemplateController {
 
         res.clear();
         Integer resAdd = msgTemplateService.add(msgTemplate);
-        if(resAdd != -1){
+        if (resAdd != -1) {
             res.put("res", true);
             res.put("id", resAdd);
-        }else{
+        } else {
             res.put("res", false);
         }
         return JsonUtil.getString(res);
@@ -114,8 +126,9 @@ public class MsgTemplateController {
         res.put("content", msgTemplates);
         return JsonUtil.getString(res);
     }
+
     @GetMapping("type/{type}")
-    public String getTemplateByType(@PathVariable("type") String type){
+    public String getTemplateByType(@PathVariable("type") String type) {
 
         String userId = "1";
         res.clear();
@@ -126,12 +139,12 @@ public class MsgTemplateController {
     }
 
     @GetMapping("type/{type}/p/{pageNo}/s/{size}")
-    public String getTemplatesByPage(@PathVariable("type")String type,@PathVariable("pageNo")String pageNo,
-                                    @PathVariable( "size") String size){
+    public String getTemplatesByPage(@PathVariable("type") String type, @PathVariable("pageNo") String pageNo,
+                                     @PathVariable("size") String size) {
         //获取用户id
         String userId = "1";
         Page<MsgTemplate> pushChannelPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
-        IPage<MsgTemplate> page = msgTemplateService.listPagesByType(pushChannelPage,userId,type);
+        IPage<MsgTemplate> page = msgTemplateService.listPagesByType(pushChannelPage, userId, type);
         List<MsgTemplate> records = page.getRecords();
         res.clear();
         res.put("countTotal", msgTemplateService.calRecordsByType(userId, type));

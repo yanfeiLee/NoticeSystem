@@ -5,6 +5,11 @@ package com.enn.noticesystem.service;
  * Create by liyanfei on 20/05/22 17:12
  * Version: 1.0
  */
+
+import okhttp3.Response;
+
+import java.util.Map;
+
 /**
  *  调用如意平台提供的api接口服务
  */
@@ -17,7 +22,7 @@ public interface RuyiService {
     * @return
     *
     */
-    String listApis(String params);
+    Map<String,Object> listApis(String params);
 
     /**
     * @todo 列出某个api下的资源
@@ -26,7 +31,7 @@ public interface RuyiService {
     * @return
     *
     */
-    String listMetas(String url,String params);
+    Map<String,Object> listMetas(String params);
 
     /**
     * @todo 根据api地址，及指定资源，获取对应数据
@@ -34,5 +39,5 @@ public interface RuyiService {
     * @param
     * @return
     */
-    String getContentByApi(String api,String[] meta);
+    Map<String,Object> getContentByApi(String params);
 }

@@ -6,12 +6,12 @@ import com.enn.noticesystem.domain.Msg;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
 import com.enn.noticesystem.service.MsgService;
+import com.enn.noticesystem.service.RuyiService;
 import com.enn.noticesystem.service.ScheduleJobService;
 import com.enn.noticesystem.util.DateUtil;
 import com.enn.noticesystem.util.JsonUtil;
 import com.enn.noticesystem.util.PropertiesUtil;
 import com.enn.noticesystem.util.TemplateUtil;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.quartz.DisallowConcurrentExecution;
@@ -20,13 +20,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.security.interfaces.RSAKey;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Project: NoticeSystem
@@ -48,6 +45,8 @@ public class WebhookJob {
     ApiDao apiDao;
     @Autowired
     MsgService msgService;
+    @Autowired
+    RuyiService ruyiService;
 
     /**
      * @param
@@ -66,20 +65,26 @@ public class WebhookJob {
         msg = createMsg(id);
 
         //解析模板中,获取数据的接口，拉取数据
-        //解析模板的api地址
-///*
-        String apiAddr = "http://39.102.70.69:11223/api/list/data";
-        String reqBody = "{\"apiId\":1,\"datasourceName\":\"RDS_MYSQL\",\"tableName\":\"rds_yun_master_month_every_day_consume_amount\",\"queryType\":\"normal\",\"page\":{\"pageNum\":0,\"pageSize\":10},\"enterParam\":[{\"columnName\":\"company_id\",\"conditionType\":\"equals\",\"value\":\"90056\"}],\"outParam\":[{\"columnName\":\"company_name\"},{\"columnName\":\"consume_date\"},{\"columnName\":\"consume_amount\"},{\"columnName\":\"pk_id\"}]}";
+        //todo 解析模板的api地址及指标
+
+
+        String  params = "{\"id\":\"2\"}";
         //拉取数据
-        Map resPullMap = pullData(apiAddr, reqBody);
+        Map<String, Object> contentMap = ruyiService.getContentByApi(params);
+
 
         log.info("拉取结果:" + msg.getPullRes());
-        //拉取失败，重试
-        if (!msg.getPullRes()) {
+        if (contentMap.get("code").toString().equals("200")) {
+            //校验拉取数据结果,数据完整性校验
+            msg.setPullRes(true);
+
+        }else{
             //重试
             log.info("获取接口数据异常，启动重试");
-            resPullMap = retryPull(apiAddr, reqBody);
+            contentMap = retryPull(params);
+
         }
+
 
        //数据获取成功
         if(msg.getPullRes()){
@@ -88,7 +93,7 @@ public class WebhookJob {
 //            Map resPullMap = null;
 
             //根据模板和获取到的数据，拼接content
-            String body = genPushJsonStr(jobVO, resPullMap);
+            String body = genPushJsonStr(jobVO, contentMap);
             //推送消息
             String webhook = jobVO.getChannelRobotWebhook();
             Boolean pushRes = pushMsg(webhook, body);
@@ -169,10 +174,10 @@ public class WebhookJob {
 //                String  metricsData = (String) data.get(metricsMap.get("meta").toString());
                 String  metricsData = "10087";
 
-                sb.append(">" + metricsName + ": <font color=\"info\">" + metricsData+ "</font>");
+                sb.append(">" + metricsName + ": <font color=\"info\">" + "${"+metricsMap.get("meta")+"}"+ "</font>");
             }
         }
-        String content = sb.toString();
+        String content =TemplateUtil.replaceVar( sb.toString(), data);
         mp.put("content", content);
         //更新消息内容
         msg.setContent(content);
@@ -244,31 +249,6 @@ public class WebhookJob {
         return false;
     }
 
-    /**
-     * @param
-     * @return
-     * @todo 从如意平台，获取数据
-     * @date 20/05/28 14:15
-     */
-    public Map pullData(String addr, String body) {
-        Map data = new HashMap();
-        Response response = apiDao.syncSend(true, addr, RequestType.POST, body);
-        try {
-            if (response.code() == 200) {
-                //校验拉取数据结果,数据完整性校验
-                msg.setPullRes(true);
-
-            }
-            data = (Map) JsonUtil.getObj(response.body().string());
-        } catch (IOException e) {
-            msg.setPullRes(false);
-            log.info("拉取数据异常：" + e.getMessage());
-            e.printStackTrace();
-        } finally {
-
-            return data;
-        }
-    }
 
     /**
      * @param
@@ -302,18 +282,15 @@ public class WebhookJob {
      * @todo 立即重试拉取数据
      * @date 20/05/28 15:35
      */
-    public Map retryPull(String apiAdrr, String body) {
-        Boolean flag = false;
+    public Map retryPull(String params) {
         Map map = new HashMap();
         Integer interval = Integer.valueOf(PropertiesUtil.getProperty("retry.internal"));
         Integer count = Integer.valueOf(PropertiesUtil.getProperty("retry.count"));
         for (int i = 0; i < count; i++) {
             try {
                 Thread.sleep(interval * 1000);
-                map = pullData(apiAdrr, body);
-                Boolean res = (Boolean) map.get("res");
-                if (res) {
-                    flag = true;
+                map = ruyiService.getContentByApi(params);
+                if (map.get("code").toString().equals("200")) {
                     msg.setPushRes(true);
                     break;
                 }
