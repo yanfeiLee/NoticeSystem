@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.util.List;
 
 /**
@@ -65,14 +66,6 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     }
 
     @Override
-    public List<PushChannel> listChannelsByType(String userId, String type) {
-
-        List<PushChannel> list = this.list(filterUserAndType(userId, type));
-        log.info("渠道列表：" + list.toString());
-        return list;
-    }
-
-    @Override
     public PushChannel getChannelById(String id) {
         PushChannel res = this.getById(id);
         log.info("推送渠道obj:" + res.toString());
@@ -80,16 +73,16 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     }
 
     @Override
-    public List<PushChannel> listChannelsByName(String userId, String name) {
-        LambdaQueryWrapper<PushChannel> pushChannelLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        pushChannelLambdaQueryWrapper.and(
-                lqw -> lqw.eq(PushChannel::getCreatorId, userId)
-                        .eq(PushChannel::getName, name)
-        );
-        List<PushChannel> list = this.list(pushChannelLambdaQueryWrapper);
-        log.info("根据渠道名，获取渠道list" + list.toString());
-        return list;
+    public IPage<PushChannel> listChannelsByName(String userId, String type, String name, IPage<PushChannel> page) {
+        LambdaQueryWrapper<PushChannel> pushChannelLambdaQueryWrapper = filterUserAndType(userId, type);
+        LambdaQueryWrapper<PushChannel> allWrapper = pushChannelLambdaQueryWrapper.and(lqw -> lqw.eq(PushChannel::getName, name));
+
+        IPage<PushChannel> res = this.page(page, allWrapper);
+
+        log.info("根据渠道名，获取渠道list:size=" +res.getRecords().size());
+        return res;
     }
+
 
     @Override
     public Integer calRecordsByType(String userId, String type) {

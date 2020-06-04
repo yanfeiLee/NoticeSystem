@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,28 +89,26 @@ public class PushChannelController {
         return JsonUtil.getString(res);
     }
 
-    @GetMapping("type/{type}")
-    public String getChannelByType(@PathVariable("type") String type) {
-        //获取当前登录用户
-        String loginUserId = "2";
+//    @GetMapping("type/{type}")
+//    public String getChannelByType(@PathVariable("type") String type) {
+//        //获取当前登录用户
+//        String loginUserId = "2";
+//
+//        List<PushChannel> pushChannels = pushChannelService.listChannelsByType(loginUserId, type);
+//        res.clear();
+//        res.put("length", pushChannels.size());
+//        res.put("content", pushChannels);
+//        return JsonUtil.getString(res);
+//    }
 
-        List<PushChannel> pushChannels = pushChannelService.listChannelsByType(loginUserId, type);
-        res.clear();
-        res.put("length", pushChannels.size());
-        res.put("content", pushChannels);
-        return JsonUtil.getString(res);
-    }
-
-    @GetMapping("name/{name}")
-    public String getChannelByName(@PathVariable("name") String name) {
+    @GetMapping("type/{type}/name/{name}/p/{pageNo}/s/{size}")
+    public String getChannelByName(@PathVariable("type")String type,@PathVariable("name")String name,@PathVariable("pageNo")String pageNo,
+                                   @PathVariable( "size") String size) {
         //获取当前登录用户
         String loginUserId = "1";
         log.info("请求name="+name);
-        List<PushChannel> channelsByName = pushChannelService.listChannelsByName(loginUserId, name);
-
-        res.clear();
-        res.put("length", channelsByName.size());
-        res.put("content", channelsByName);
+        Page<PushChannel> page = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
+        IPage<PushChannel> res = pushChannelService.listChannelsByName(loginUserId, type, name, page);
         return JsonUtil.getString(res);
     }
 

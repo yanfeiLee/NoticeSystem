@@ -50,13 +50,13 @@ public class ScheduleJobController {
         res.clear();
         //准备添加页面需要的数据
         if (type.equals("1")) {
-            //机器人
-            //获取用户id
-            String userId = "1";
-            List<PushChannel> pushChannels = pushChannelService.listChannelsByType(userId, type);
-            List<MsgTemplate> msgTemplates = msgTemplateService.listTemplatesByType(userId, type);
-            res.put("pushChannels", pushChannels);
-            res.put("msgTemplates", msgTemplates);
+//            //机器人
+//            //获取用户id
+//            String userId = "1";
+//            List<PushChannel> pushChannels = pushChannelService.listChannelsByType(userId, type);
+//            List<MsgTemplate> msgTemplates = msgTemplateService.listTemplatesByType(userId, type);
+//            res.put("pushChannels", pushChannels);
+//            res.put("msgTemplates", msgTemplates);
 
         } else if (type.equals("2")) {
 
@@ -72,16 +72,14 @@ public class ScheduleJobController {
 
     @PostMapping("add")
     public String add(@RequestBody ScheduleJob scheduleJob) {
-
+        res.clear();
         //1.根据任务类型，设置调度执行时调用的service和method
         scheduleJobService.setServiceAndMethod(scheduleJob);
-        //2.转换任务执行时间格式为cron表达式
-        scheduleJobService.setCronExpression(scheduleJob);
-
         //获取用户id
         scheduleJob.setCreatorId(1);
 
         Integer resAdd = scheduleJobService.add(scheduleJob);
+
         res.put("res", resAdd);
         return JsonUtil.getString(res);
     }
@@ -102,38 +100,30 @@ public class ScheduleJobController {
         return JsonUtil.getString(resDel);
     }
 
-    @GetMapping("name/{name}")
-    public String getJobsByName(@PathVariable("name") String name) {
-
+    @GetMapping("name/{name}/p/{pageNo}/s/{size}")
+    public String getJobsByName(@PathVariable("name") String name,@PathVariable("pageNo") String pageNo,
+                                @PathVariable("size") String size) {
         //获取用户名
         String userId = "1";
-        List<ScheduleJob> scheduleJobs = scheduleJobService.listScheduleJobsByName(userId, name);
-        res.clear();
-        res.put("length", scheduleJobs.size());
-        res.put("content", scheduleJobs);
-        return JsonUtil.getString(res);
+        Page<ScheduleJob> scheduleJobPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
+        IPage<ScheduleJob> page = scheduleJobService.listScheduleJobsByName(userId, name, scheduleJobPage);
+        return JsonUtil.getString(page);
     }
 
     @GetMapping("p/{pageNo}/s/{size}")
     public String getJobsByPage(@PathVariable("pageNo") String pageNo,
                                 @PathVariable("size") String size) {
+        res.clear();
         //获取用户id
         String userId = "1";
 
         Page<ScheduleJob> scheduleJobPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
         IPage<ScheduleJob> page = scheduleJobService.listSchedulesJobsByPage(scheduleJobPage, userId);
-        List<ScheduleJob> records = page.getRecords();
-        res.clear();
-        res.put("countTotal", scheduleJobService.calRecordsByType(userId));
-        res.put("length", records.size());
-        res.put("content", records);
-        return JsonUtil.getString(res);
+        return JsonUtil.getString(page);
     }
 
     @GetMapping("id/{id}")
     public String getJobById(@PathVariable("id") String id) {
-        log.info("获取id=" + id + "的任务详细信息");
-        log.info("请求信息" + httpServletRequest.getRequestURI() + "||" + httpServletRequest.getHeader("test"));
         ScheduleJobVO scheduleJobById = scheduleJobService.getScheduleJobVOById(Integer.valueOf(id));
         res.clear();
         res.put("content", scheduleJobById);

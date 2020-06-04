@@ -106,17 +106,17 @@ public class WebhookJob {
                 //更新消息推送结果
                 msg.setPushRes(true);
             } else {
-                log.info("推送消息异常，启动重试");
+                log.warn("推送消息异常，启动重试");
                 //重试
                 retryPush(webhook, body);
             }
             if (!msg.getPushRes()) {
                 //重试之后仍push失败
-                log.info("重试推送 失败。。。。");
+                log.error("重试推送 失败。。。。");
             }
         } else {
             //重试之后，仍pull数据失败
-            log.info("重试Pull 失败。。。。");
+            log.error("重试Pull 失败。。。。");
         }
     }
 
@@ -234,18 +234,22 @@ public class WebhookJob {
      */
     public Boolean pushMsg(String webhook, String body) {
         Response response = apiDao.syncSend(true, webhook, RequestType.POST, body);
-        Map mp = new HashMap();
-        try {
-            String res = response.body().string();
-            mp = (Map) JsonUtil.getObj(res);
-        } catch (IOException e) {
-            log.info("推送数据异常:" + e.getMessage());
-            msg.setPushRes(false);
+        if(200 == response.code()){
+            try {
+                String res = response.body().string();
+                Map mp = (Map) JsonUtil.getObj(res);
+                Integer errcode = (Integer) mp.get("errcode");
+                if (errcode == 0) {
+                    msg.setPushRes(true);
+                    return true;
+                }
+            } catch (IOException e) {
+                log.error("推送数据异常:" + e.getMessage());
+            }
+        }else{
+            log.error("微信webhook服务器响应异常");
         }
-        Integer errcode = (Integer) mp.get("errcode");
-        if (errcode == 0) {
-            return true;
-        }
+        msg.setPushRes(false);
         return false;
     }
 
@@ -257,7 +261,6 @@ public class WebhookJob {
      * @date 20/05/28 14:30
      */
     public void retryPush(String webhook, String body) {
-
         Integer interval = Integer.valueOf(PropertiesUtil.getProperty("retry.internal"));
         Integer count = Integer.valueOf(PropertiesUtil.getProperty("retry.count"));
         for (int i = 0; i < count; i++) {
@@ -270,7 +273,7 @@ public class WebhookJob {
                     break;
                 }
             } catch (InterruptedException e) {
-                log.info("重试发送异常:" + e.getMessage());
+                log.error("重试发送异常:" + e.getMessage());
                 e.printStackTrace();
             }
         }

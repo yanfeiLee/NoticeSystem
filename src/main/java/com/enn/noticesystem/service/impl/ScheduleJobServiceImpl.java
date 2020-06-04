@@ -3,6 +3,7 @@ package com.enn.noticesystem.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.enn.noticesystem.constant.JobOperateEnum;
 import com.enn.noticesystem.dao.mapper.ScheduleJobMapper;
@@ -43,7 +44,9 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     @Override
     public Integer add(ScheduleJob job) {
         log.info("添加调度任务：" + job.getName());
+
         //此处省去数据验证
+
         boolean res = this.save(job);
 
 //         创建任务，立即执行
@@ -73,30 +76,32 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     public Map<String, Object> start(int id) {
         Map<String, Object> mp = new HashMap<>();
         Boolean res = false;
-        String info = "";
+        String info = "任务不存在";
         ScheduleJob job = this.getScheduleJobById(id);
-        try {
-            //判断首次启动还是恢复任务
-            if (0 == job.getStatus()) {
-                quartzService.addJob(job);
-                //修改任务状态
-                job.setStatus(1);
-                this.update(job);
-                res = true;
-                info = "启动成功";
-            } else if (1 == job.getStatus()) {
-                //任务已启动
-                res = false;
-                info = "重复启动任务";
-            } else {
-                quartzService.operateJob(JobOperateEnum.START, job);
-                //修改任务状态
-                job.setStatus(1);
-                this.update(job);
-                res = true;
-                info = "恢复任务成功";
-            }
 
+        try {
+            if(null != job){
+                //判断首次启动还是恢复任务
+                if (0 == job.getStatus()) {
+                    quartzService.addJob(job);
+                    //修改任务状态
+                    job.setStatus(1);
+                    this.update(job);
+                    res = true;
+                    info = "启动成功";
+                } else if (1 == job.getStatus()) {
+                    //任务已启动
+                    res = false;
+                    info = "重复启动任务";
+                } else {
+                    quartzService.operateJob(JobOperateEnum.START, job);
+                    //修改任务状态
+                    job.setStatus(1);
+                    this.update(job);
+                    res = true;
+                    info = "恢复任务成功";
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
             log.info("启动任务异常：" + e.getMessage());
@@ -123,7 +128,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
                 job.setStatus(2);
                 this.update(job);
                 res = true;
-                info="暂停成功";
+                info = "暂停成功";
             }
         } catch (SchedulerException e) {
             log.info("任务暂停异常:" + e.getMessage());
@@ -137,7 +142,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
 
     @Override
     public Map<String, Object> delete(int id) {
-        Map<String,Object> mp = new HashMap<>();
+        Map<String, Object> mp = new HashMap<>();
         Boolean res = false;
         String info = "";
         //此处省去数据验证
@@ -158,10 +163,10 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
                 info = "删除成功";
             }
         } catch (SchedulerException e) {
-            log.info("删除任务异常："+e.getMessage());
+            log.info("删除任务异常：" + e.getMessage());
             info = "删除失败";
             e.printStackTrace();
-        }finally {
+        } finally {
             mp.put("res", res);
             mp.put("info", info);
             return mp;
@@ -174,18 +179,23 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         //验证用户信息
 
         ScheduleJob job = this.getById(id);
-        log.info("获取调度任务obj:" + job.toString());
+        if (null != job){
+            log.info("获取调度任务obj:" + job.toString());
+        }else {
+            log.error("任务id="+id+"的任务不存在！");
+        }
         return job;
     }
 
     @Override
-    public List<ScheduleJob> listScheduleJobsByName(String userId, String name) {
+    public IPage<ScheduleJob> listScheduleJobsByName(String userId, String name, Page<ScheduleJob> page) {
         log.info("查询ScheduleJob:" + name);
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
         scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId).eq(ScheduleJob::getName, name));
-        List<ScheduleJob> list = this.list(scheduleJobLambdaQueryWrapper);
-        return list;
+        IPage<ScheduleJob> res = this.page(page, scheduleJobLambdaQueryWrapper);
+        return res;
     }
+
 
     @Override
     public Integer calRecordsByType(String userId) {
@@ -227,17 +237,6 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         }
 
         return scheduleJob;
-    }
-
-    @Override
-    public ScheduleJob setCronExpression(ScheduleJob scheduleJob) {
-        String cronJson = scheduleJob.getCronExpression();
-
-        Map<String, String> hashMap = (Map<String, String>) JsonUtil.getObj(cronJson);
-//        {"period":"week","repeat":"2","time":"22:09:18"}
-        String cronExp = CronUtil.genCronSingle(hashMap.get("period"), hashMap.get("time"), hashMap.get("repeat"));
-        scheduleJob.setCronExpression(cronExp);
-        return null;
     }
 
 

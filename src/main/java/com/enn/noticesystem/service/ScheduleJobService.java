@@ -1,6 +1,7 @@
 package com.enn.noticesystem.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
@@ -60,7 +61,7 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
      * @return
      *
      */
-    List<ScheduleJob> listScheduleJobsByName(String userId,String name);
+    IPage<ScheduleJob> listScheduleJobsByName(String userId,String name,Page<ScheduleJob> page);
 
     /**
      * @todo 计算用户 创建任务的总个数
@@ -95,15 +96,6 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
     */
     ScheduleJob setServiceAndMethod(ScheduleJob scheduleJob);
 
-    /**
-    * @todo 根据用户提交的任务执行时间信息，转换为cron表达式
-    * 前端将定时任务的时间{"period":"week","repeat":"2","time":"22:09:18"}，转为corntab 格式
-    * @date 20/05/26 15:15
-    * @param scheduleJob 任务信息
-    * @return
-    *
-    */
-    ScheduleJob setCronExpression(ScheduleJob scheduleJob);
 
 //    任务执行相关
 

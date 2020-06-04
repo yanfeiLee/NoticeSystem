@@ -53,6 +53,7 @@ public class MybatisPlusConfig {
     /**
      *  打印sql
      */
+
     @Bean
     public PerformanceInterceptor performanceInterceptor() {
         PerformanceInterceptor performanceInterceptor = new PerformanceInterceptor();

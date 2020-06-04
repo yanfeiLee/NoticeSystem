@@ -7,6 +7,8 @@ import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.plugin.quartz.QuartzFactory;
 import com.enn.noticesystem.service.QuartzService;
 import com.enn.noticesystem.service.ScheduleJobService;
+import com.enn.noticesystem.util.CronUtil;
+import com.enn.noticesystem.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
@@ -38,20 +41,22 @@ public class QuartzServiceImpl implements QuartzService {
         //启动status=1（运行中）的任务，
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
         scheduleJobLambdaQueryWrapper.and(
-                lqw->lqw.ne(ScheduleJob::getStatus, "0")
+                //过滤未启动任务
+                lqw -> lqw.ne(ScheduleJob::getStatus, "0")
         );
         List<ScheduleJob> scheduleJobs = jobService.list(scheduleJobLambdaQueryWrapper);
         if (scheduleJobs != null) {
             //如果任务停止，则不启动
             for (ScheduleJob job : scheduleJobs) {
-                log.info("初始化定时任务：id="+job.getId());
+                log.info("初始化定时任务：id=" + job.getId()+"任务状态："+job.getStatus());
                 addJob(job);
-                if(job.getStatus()==2){
+                if (job.getStatus() == 2) {
                     //将status=2(暂停中)的任务加入调度器，状态置为暂停
                     try {
+                        log.info("暂停任务，id="+job.getId());
                         operateJob(JobOperateEnum.PAUSE, job);
                     } catch (SchedulerException e) {
-                        log.info("初始化暂停状态任务失败:jobid="+job.getId());
+                        log.error("初始化暂停状态任务失败:jobid=" + job.getId());
                         e.printStackTrace();
                     }
                 }
@@ -65,11 +70,15 @@ public class QuartzServiceImpl implements QuartzService {
         //生成任务key
         String identifyKey = job.getId() + "-" + job.getName();
         try {
+            //解析cronExpression
+            Map<String,String> mp = (Map<String, String>) JsonUtil.getObj(job.getCronExpression());
+            String cronExpression = CronUtil.genCronSingle(mp.get("period"),mp.get("time"),mp.get("repeat"));
+            log.info("任务表达式："+cronExpression);
             //创建触发器
             Trigger trigger = TriggerBuilder.newTrigger()
                     .withIdentity(identifyKey)
                     .withSchedule(CronScheduleBuilder
-                            .cronSchedule(job.getCronExpression())
+                            .cronSchedule(cronExpression)
                             .withMisfireHandlingInstructionFireAndProceed()// 调度时间点，调度器繁忙没有执行，空闲时立即执行
                     )
 
@@ -81,35 +90,38 @@ public class QuartzServiceImpl implements QuartzService {
                     .build();
 
             //传入调度的数据，在QuartzFactory中需要使用
-             jobDetail.getJobDataMap().put("scheduleJob", job);
+            jobDetail.getJobDataMap().put("scheduleJob", job);
 
             //调度作业
-           scheduler.scheduleJob(jobDetail, trigger);
+            scheduler.scheduleJob(jobDetail, trigger);
         } catch (Exception e) {
-            log.info("启动任务失败，任务id="+identifyKey);
+            log.error("启动任务失败，任务id=" + identifyKey);
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void operateJob(JobOperateEnum jobOperateEnum,ScheduleJob job) throws SchedulerException {
+    public void operateJob(JobOperateEnum jobOperateEnum, ScheduleJob job) throws SchedulerException {
         String jobIdentify = job.getId() + "-" + job.getName();
         JobKey jobKey = new JobKey(jobIdentify);
         JobDetail jobDetail = scheduler.getJobDetail(jobKey);
         if (jobDetail == null) {
-            log.info("任务异常: "+jobIdentify+"不存在");
+            log.error("任务异常: " + jobIdentify + "不存在");
         }
         switch (jobOperateEnum) {
             case START:
-                log.info("恢复任务:"+jobIdentify);
+                log.info("恢复/启动任务:" + jobIdentify);
                 scheduler.resumeJob(jobKey);
+                job.setStatus(1);
                 break;
             case PAUSE:
-                log.info("暂停任务:"+jobIdentify);
+                log.info("暂停任务:" + jobIdentify);
                 scheduler.pauseJob(jobKey);
+                //更新job
+                job.setStatus(2);
                 break;
             case DELETE:
-                log.info("删除任务:"+jobIdentify);
+                log.info("删除任务:" + jobIdentify);
                 scheduler.deleteJob(jobKey);
                 break;
         }

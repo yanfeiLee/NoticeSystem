@@ -73,7 +73,7 @@ public class ScheduleJob {
     private String subTitle;
 
     /**
-     * 状态 1.启动 2.暂停
+     * 状态 0.未启动 1.启动 2.暂停
      */
     private int status;
 

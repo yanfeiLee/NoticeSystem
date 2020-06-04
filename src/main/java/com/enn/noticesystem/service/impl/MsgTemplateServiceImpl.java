@@ -59,31 +59,31 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
         return res;
     }
 
-    @Override
-    public List<MsgTemplate> listTemplatesByType(String userId, String type) {
-        log.info("获取模板list: uid=" + userId + ";type=" + type);
-
-        List<MsgTemplate> res = this.list(filterUserAndType(userId, type));
-        log.info("type=" + type + " 的模板list:" + res.toString());
-        return res;
-    }
 
     @Override
     public MsgTemplate getTemplateById(String id) {
 
         MsgTemplate res = this.getById(id);
-        log.info("模板信息" + res);
+        log.info("模板信息" + res.toString());
         return res;
     }
 
+    @Override
+    public IPage<MsgTemplate> listTemplatesByName(String userId, String type, String name, IPage<MsgTemplate> page) {
+        LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = filterUserAndType(userId, type);
+        LambdaQueryWrapper<MsgTemplate> allWarpper = msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getName, name));
+        IPage<MsgTemplate> res = this.page(page, allWarpper);
+        log.info("用户id=" + userId + ",模板名为：" + name + "的模板有 :size=" + res.getRecords().size());
+        return res;
+    }
 
     @Override
-    public List<MsgTemplate> listTemplatesByName(String userId, String name) {
-        LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getCreatorId, userId).eq(MsgTemplate::getName, name));
-        List<MsgTemplate> list = this.list(msgTemplateLambdaQueryWrapper);
-        log.info("用户id=" + userId + ",模板名为：" + name + "的模板有 " + list.toString());
-        return list;
+    public Integer calRecordsByName(String userId, String type, String name) {
+        log.info("计算用户id="+userId+",type="+type+"name="+name+"的记录总数");
+        LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = filterUserAndType(userId, type);
+        LambdaQueryWrapper<MsgTemplate> allWarpper = msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getName, name));
+        int res = this.count(allWarpper);
+        return res;
     }
 
     @Override

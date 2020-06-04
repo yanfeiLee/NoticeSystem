@@ -22,7 +22,7 @@ public interface RuyiService {
     * @return
     *
     */
-    Map<String,Object> listApis(String params);
+    Map<String,Object> listApis(Map<String,Object> params);
 
     /**
     * @todo 列出某个api下的资源

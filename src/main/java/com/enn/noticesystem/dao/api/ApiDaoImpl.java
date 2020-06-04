@@ -2,6 +2,7 @@ package com.enn.noticesystem.dao.api;
 
 import com.enn.noticesystem.constant.RequestType;
 import com.enn.noticesystem.util.OkHttpClientUtil;
+import com.mysql.fabric.xmlrpc.base.Params;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.stereotype.Component;
@@ -34,7 +35,8 @@ public class ApiDaoImpl implements ApiDao {
             log.error("获取httpsClient异常");
             e.printStackTrace();
         }
-
+        log.info("请求url:"+url);
+        log.info("请求参数："+reqParams);
 
         log.info("发送同步请求开始");
         //构造请求内容
@@ -58,7 +60,7 @@ public class ApiDaoImpl implements ApiDao {
             e.printStackTrace();
             return null;
         }
-        log.info("发送同步请求成功，并获取到数据");
+        log.info("发送同步请求成功");
         return response;
     }
 }

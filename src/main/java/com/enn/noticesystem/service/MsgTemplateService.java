@@ -39,15 +39,6 @@ public interface MsgTemplateService extends IService<MsgTemplate> {
      */
     boolean delete(int id);
 
-    /**
-    * @todo 根据用户和模板类型，选择模板List
-    * @date 20/05/21 12:36
-    * @param 登录用户id  模板类型id
-    * @return MsgTemplate 列表
-    *
-    */
-    List<MsgTemplate> listTemplatesByType(String userId, String type);
-
    /**
    * @todo 根据模板id,选择模板对象
    * @date 20/05/21 12:35
@@ -64,7 +55,7 @@ public interface MsgTemplateService extends IService<MsgTemplate> {
    * @return
    *
    */
-    List<MsgTemplate> listTemplatesByName(String userId,String name);
+   IPage<MsgTemplate> listTemplatesByName(String userId,String type,String name,IPage<MsgTemplate> page);
 
     /**
      * @todo 计算用户 某个类型模板的总个数
@@ -73,6 +64,15 @@ public interface MsgTemplateService extends IService<MsgTemplate> {
      * @return
      *
      */
+    /**
+    * @todo 根据模板名称、类别 用户 计算记录总数
+    * @date 20/06/04 10:18
+    * @param
+    * @return
+    *
+    */
+    Integer calRecordsByName(String userId,String type,String name);
+
     Integer calRecordsByType(String userId,String type);
     /**
      * @todo 根据用户id,模板类型，返回分页信息

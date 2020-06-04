@@ -2,6 +2,7 @@ package com.enn.noticesystem.dao.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.enn.noticesystem.domain.MsgTemplate;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
  * Project: NoticeSystem

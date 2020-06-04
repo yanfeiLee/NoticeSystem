@@ -41,15 +41,6 @@ public interface PushChannelService extends IService<PushChannel> {
     boolean delete(int id);
 
     /**
-    * @todo 根据用户和渠道类型，选择渠道List
-    * @date 20/05/20 18:25
-    * @param
-    * @return
-    *
-    */
-    List<PushChannel> listChannelsByType(String userId,String type);
-
-    /**
     * @todo 根据渠道id,选择渠道对象
     * @date 20/05/20 18:26
     * @param
@@ -65,7 +56,7 @@ public interface PushChannelService extends IService<PushChannel> {
      * @return
      *
      */
-     List<PushChannel> listChannelsByName(String userId,String name);
+     IPage<PushChannel> listChannelsByName(String userId,String type,String name,IPage<PushChannel> page);
 
      /**
      * @todo 计算用户 某个类型渠道的总个数
