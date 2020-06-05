@@ -52,7 +52,6 @@ public class PropertiesUtil {
             }
         }
         log.info("加载properties文件内容完成...........");
-        log.info("properties文件内容：" + props);
     }
 
     public static String getProperty(String key) {

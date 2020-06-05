@@ -23,7 +23,7 @@ import java.util.List;
 public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTemplate> implements MsgTemplateService {
 
     /**
-     * @param 用户id 模板类型
+     * @param userId 模板类型
      * @return
      * @todo LambdaQuery 查询器
      * @date 20/05/21 18:37
@@ -62,9 +62,8 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
 
     @Override
     public MsgTemplate getTemplateById(String id) {
-
+        log.info("模板信息:id=" + id);
         MsgTemplate res = this.getById(id);
-        log.info("模板信息" + res.toString());
         return res;
     }
 
@@ -79,7 +78,7 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
 
     @Override
     public Integer calRecordsByName(String userId, String type, String name) {
-        log.info("计算用户id="+userId+",type="+type+"name="+name+"的记录总数");
+        log.info("计算用户id=" + userId + ",type=" + type + "name=" + name + "的记录总数");
         LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = filterUserAndType(userId, type);
         LambdaQueryWrapper<MsgTemplate> allWarpper = msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getName, name));
         int res = this.count(allWarpper);
@@ -88,7 +87,7 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
 
     @Override
     public Integer calRecordsByType(String userId, String type) {
-        log.info("计算用户id="+userId+",type="+type+"总数");
+        log.info("计算用户id=" + userId + ",type=" + type + "总数");
 
         int res = this.count(filterUserAndType(userId, type));
 
@@ -97,7 +96,7 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
 
     @Override
     public IPage<MsgTemplate> listPagesByType(IPage<MsgTemplate> page, String userId, String type) {
-        log.info("查询type="+type+"的分页信息");
+        log.info("查询type=" + type + "的分页信息");
         IPage<MsgTemplate> res = this.page(page, filterUserAndType(userId, type));
         return res;
     }

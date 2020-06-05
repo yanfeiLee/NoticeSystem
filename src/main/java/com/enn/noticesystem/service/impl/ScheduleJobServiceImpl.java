@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.swing.*;
 import java.security.interfaces.RSAKey;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +44,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
 
     @Override
     public Integer add(ScheduleJob job) {
-        log.info("添加调度任务：" + job.getName());
+        log.info("创建调度任务：" + job.getName());
 
         //此处省去数据验证
 
@@ -80,7 +81,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         ScheduleJob job = this.getScheduleJobById(id);
 
         try {
-            if(null != job){
+            if (null != job) {
                 //判断首次启动还是恢复任务
                 if (0 == job.getStatus()) {
                     quartzService.addJob(job);
@@ -104,7 +105,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
             }
         } catch (Exception e) {
             e.printStackTrace();
-            log.info("启动任务异常：" + e.getMessage());
+            log.error("启动任务异常：" + e.getMessage());
             info = "启动任务失败";
         } finally {
             mp.put("res", res);
@@ -117,21 +118,26 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     public Map<String, Object> pause(int id) {
         Map<String, Object> mp = new HashMap<>();
         Boolean res = false;
-        String info = "";
+        String info = "任务不存在";
         ScheduleJob job = this.getScheduleJobById(id);
         try {
-            if (2 == job.getStatus()) {
-                info = "任务已暂停,重复暂停";
+            if (null != job) {
+
+                if (2 == job.getStatus()) {
+                    info = "任务已暂停,重复暂停";
+                } else {
+                    quartzService.operateJob(JobOperateEnum.PAUSE, job);
+                    //修改任务状态
+                    job.setStatus(2);
+                    this.update(job);
+                    res = true;
+                    info = "暂停成功";
+                }
             } else {
-                quartzService.operateJob(JobOperateEnum.PAUSE, job);
-                //修改任务状态
-                job.setStatus(2);
-                this.update(job);
-                res = true;
-                info = "暂停成功";
+                log.error("id=" + id + " 的任务不存在");
             }
         } catch (SchedulerException e) {
-            log.info("任务暂停异常:" + e.getMessage());
+            log.error("任务暂停异常:" + e.getMessage());
             e.printStackTrace();
         } finally {
             mp.put("res", res);
@@ -144,26 +150,29 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     public Map<String, Object> delete(int id) {
         Map<String, Object> mp = new HashMap<>();
         Boolean res = false;
-        String info = "";
+        String info = "任务不存在";
         //此处省去数据验证
         ScheduleJob job = this.getScheduleJobById(id);
-        log.info("删除任务 " + job.getId());
-
         //执行job
         try {
-            //任务暂停后，才允许删除
-            if (1 == job.getStatus()) {
-                info = "暂停任务后，才能删除";
-            } else if (0 == job.getStatus()) {
-                info = "任务创建后未启动";
-                res = this.removeById(id);
+            if (null != job) {
+                log.info("删除任务 " + job.getId());
+                //任务暂停后，才允许删除
+                if (1 == job.getStatus()) {
+                    info = "暂停任务后，才能删除";
+                } else if (0 == job.getStatus()) {
+                    info = "任务创建后未启动";
+                    res = this.removeById(id);
+                } else {
+                    quartzService.operateJob(JobOperateEnum.DELETE, job);
+                    res = this.removeById(id);
+                    info = "删除成功";
+                }
             } else {
-                quartzService.operateJob(JobOperateEnum.DELETE, job);
-                res = this.removeById(id);
-                info = "删除成功";
+                log.error("id=" + id + "的任务不存在");
             }
         } catch (SchedulerException e) {
-            log.info("删除任务异常：" + e.getMessage());
+            log.error("删除任务异常：" + e.getMessage());
             info = "删除失败";
             e.printStackTrace();
         } finally {
@@ -171,20 +180,19 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
             mp.put("info", info);
             return mp;
         }
-
     }
 
     @Override
     public ScheduleJob getScheduleJobById(Integer id) {
         //验证用户信息
-
+        log.info("获取id=" + id + "的job的任务信息");
         ScheduleJob job = this.getById(id);
-        if (null != job){
-            log.info("获取调度任务obj:" + job.toString());
-        }else {
-            log.error("任务id="+id+"的任务不存在！");
+        if (null != job) {
+            return job;
+        } else {
+            log.error("任务id=" + id + "的任务不存在！");
         }
-        return job;
+        return null;
     }
 
     @Override
@@ -218,7 +226,12 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     public ScheduleJobVO getScheduleJobVOById(Integer id) {
         log.info("获取id=" + id + "的job的详细信息");
         ScheduleJobVO scheduleJobDetail = this.getBaseMapper().getScheduleJobDetail(id);
-        return scheduleJobDetail;
+        if (null != scheduleJobDetail) {
+            return scheduleJobDetail;
+        } else {
+            log.error("任务id=" + id + "的任务不存在！");
+        }
+        return null;
     }
 
     @Override

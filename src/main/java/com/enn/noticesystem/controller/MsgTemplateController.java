@@ -35,7 +35,7 @@ public class MsgTemplateController {
 
     private HashMap<Object, Object> res = new HashMap<>();
 
-    @GetMapping("addV/type/{type}/p/{pageNo}/s/{size}")
+    @GetMapping("addV/type/{type}/apis/p/{pageNo}/s/{size}")
     public String addV(@PathVariable("type") String type,@PathVariable("pageNo") String pageNo,
                        @PathVariable("size") String size) {
         Map<String, Object> resMap = new HashMap<>();
@@ -45,9 +45,8 @@ public class MsgTemplateController {
             //请求如意提供 指标的 所有接口
             //请求参数
             Map<String,Object> params = new HashMap<>();
-            params.put("pageNum", pageNo);
+            params.put("pageNum",pageNo);
             params.put("pageSize", size);
-
             resMap = ruyiService.listApis(params);
             //todo 解析响应体 获取api名称、请求类型、查询数据所需参数 按需返回
 
@@ -58,22 +57,20 @@ public class MsgTemplateController {
         } else if (type.equals("4")) {
 
         }
-        res.clear();
-        res.put("res", resMap);
-        return JsonUtil.getString(res);
+
+        return JsonUtil.getString(resMap);
     }
 
     @GetMapping("addV/type/{type}/api/{id}")
     public String addV(@PathVariable("type") String type, @PathVariable("id") String id) {
-        res.clear();
+        Map<String, Object> metricsMap = new HashMap<>();
         if (type.equals("1")) {
             //请求参数
             String reqParams = "{\"id\":" + id + "}";
             //获取meta列表[{"meta":"pv","metaName":"页面访问量"},{}]
-            Map<String, Object> metricsMap = ruyiService.listMetas(reqParams);
-            res.put("metas", metricsMap);
+            metricsMap = ruyiService.listMetas(reqParams);
         }
-        return JsonUtil.getString(res);
+        return JsonUtil.getString(metricsMap);
     }
 
     @PostMapping("add")
@@ -114,7 +111,14 @@ public class MsgTemplateController {
     public String getTemplateById(@PathVariable("id") String id) {
 
         res.clear();
-        res.put("content", msgTemplateService.getTemplateById(id));
+        MsgTemplate template = msgTemplateService.getTemplateById(id);
+        if(null != template){
+            res.put(res, true);
+            res.put("content", template);
+        }else{
+            res.put(res, false);
+            res.put("content", "模板不存在");
+        }
         return JsonUtil.getString(res);
     }
 

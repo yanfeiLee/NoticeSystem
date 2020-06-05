@@ -73,7 +73,6 @@ public class PushChannelController {
 
     @PostMapping(value = "del/{id}")
     public String del(@PathVariable("id") String id) {
-        log.info("删除id" + id + "的pushChannel");
         res.clear();
         res.put("res", pushChannelService.delete(Integer.valueOf(id)));
         return JsonUtil.getString(res);
@@ -85,21 +84,16 @@ public class PushChannelController {
         log.info("获取pushChannel:" + id);
         PushChannel pushChannel = pushChannelService.getChannelById(id);
         res.clear();
-        res.put("content", pushChannel);
+        if(null != pushChannel){
+            res.put("res", true);
+            res.put("content", pushChannel);
+        }else{
+            res.put("res",false );
+            res.put("content", "渠道不存在");
+        }
         return JsonUtil.getString(res);
     }
 
-//    @GetMapping("type/{type}")
-//    public String getChannelByType(@PathVariable("type") String type) {
-//        //获取当前登录用户
-//        String loginUserId = "2";
-//
-//        List<PushChannel> pushChannels = pushChannelService.listChannelsByType(loginUserId, type);
-//        res.clear();
-//        res.put("length", pushChannels.size());
-//        res.put("content", pushChannels);
-//        return JsonUtil.getString(res);
-//    }
 
     @GetMapping("type/{type}/name/{name}/p/{pageNo}/s/{size}")
     public String getChannelByName(@PathVariable("type")String type,@PathVariable("name")String name,@PathVariable("pageNo")String pageNo,

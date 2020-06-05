@@ -126,7 +126,13 @@ public class ScheduleJobController {
     public String getJobById(@PathVariable("id") String id) {
         ScheduleJobVO scheduleJobById = scheduleJobService.getScheduleJobVOById(Integer.valueOf(id));
         res.clear();
-        res.put("content", scheduleJobById);
+        if(null != scheduleJobById){
+            res.put("res", true);
+            res.put("content", scheduleJobById);
+        }else{
+            res.put("res", false);
+            res.put("content", "任务不存在");
+        }
         return JsonUtil.getString(res);
     }
 

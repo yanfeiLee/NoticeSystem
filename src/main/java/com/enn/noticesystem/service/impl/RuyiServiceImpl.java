@@ -92,7 +92,6 @@ public class RuyiServiceImpl implements RuyiService {
         Map<String, Object> resMap = new HashMap<>();
         resMap.put("total", 0);
         resMap.put("metaList", "");
-
         try {
             if (200 == response.code()) {
                 Map<String, Object> responseMap = JsonUtil.getMap(response.body().string());
@@ -100,7 +99,10 @@ public class RuyiServiceImpl implements RuyiService {
                     Map<String, Object> result_obj = (Map<String, Object>) responseMap.get("result_obj");
                     List<Map<String, Object>> metricsListMap = (List<Map<String, Object>>) result_obj.get("exitResult");
                     //过滤到主键
-                    List<Map<String, Object>> showMetricsList = metricsListMap.stream().filter(obj -> !obj.get("columnName").toString().equals("pk_id")).collect(Collectors.toList());
+                    List<Map<String, Object>> showMetricsList = metricsListMap.stream()
+                            .filter(obj -> !obj.get("columnName").toString().equals("pk_id"))
+                            .filter(obj->!obj.get("columnDesc").toString().equals("主键"))
+                            .collect(Collectors.toList());
                     resMap.put("total", showMetricsList.size());
                     resMap.put("metaList", showMetricsList);
                 } else {
