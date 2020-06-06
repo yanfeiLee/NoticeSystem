@@ -13,24 +13,34 @@ public enum JobOperateEnum {
     PAUSE(2, "暂停"),
     DELETE(3, "删除");
 
-    private final Integer value;
+    private final Integer code;
     private final String desc;
 
-    JobOperateEnum(final Integer value, final String desc) {
-        this.value = value;
+    JobOperateEnum(final Integer code, final String desc) {
+        this.code = code;
         this.desc = desc;
     }
 
-    public Serializable getValue() {
-        return this.value;
+    public Serializable getcode() {
+        return this.code;
     }
 
-    // Jackson 注解为 JsonValue 返回中文 json 描述
+    // Jackson 注解为 Jsoncode 返回中文 json 描述
     public String getDesc() {
         return this.desc;
     }
 
     public String getEnumName() {
         return name();
+    }
+
+    public static String getDescByCode(Integer code){
+        JobOperateEnum[] values = values();
+        for (JobOperateEnum value : values) {
+            if(value.code == code){
+                return value.desc;
+            }
+        }
+        return "";
     }
 }

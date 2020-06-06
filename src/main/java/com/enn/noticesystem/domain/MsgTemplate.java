@@ -28,11 +28,20 @@ public class MsgTemplate {
     /**
      *  模版类型 1机器人 2 短信  3站内信  4邮件
      */
-    private String type;
+    private Integer type;
+    @TableField(exist = false)
+    private String typeDesc;
     /**
      *  模板描述
      */
     private String description;
+    /**
+     *  模板状态：0关闭 1开启
+     */
+    private Integer status;
+    @TableField(exist = false)
+    private String statusDesc;
+
     /**
      *  创建者id(引用用户表主键)
      */
@@ -67,6 +76,8 @@ public class MsgTemplate {
      *  机器人通过webhook推送时的模板类型：1text 文本 2 markdown 3 图片 4 图文消
      */
     private Integer robotPushType;
+    @TableField(exist = false)
+    private String robotPushTypeDesc;
     
     
 }

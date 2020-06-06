@@ -2,6 +2,7 @@ package com.enn.noticesystem.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.enn.noticesystem.constant.PushChannelTypeEnum;
 import com.enn.noticesystem.domain.PushChannel;
 import com.enn.noticesystem.service.PushChannelService;
 import com.enn.noticesystem.util.JsonUtil;
@@ -33,14 +34,8 @@ public class PushChannelController {
     public String addV(@PathVariable("type") String type,@RequestBody Map<String,String> reqMap){
 
         //准备添加页面需要的数据
-        if(type.equals("1")){
+        if(type.equals(PushChannelTypeEnum.ROBOT.getCode().toString())){
             //机器人
-        } else if(type.equals("2")){
-
-        }else if(type.equals("3")){
-
-        }else if(type.equals("4")){
-
         }
         res.clear();
         res.put("test","test");
@@ -86,6 +81,7 @@ public class PushChannelController {
         res.clear();
         if(null != pushChannel){
             res.put("res", true);
+            pushChannelService.addDesc(pushChannel);
             res.put("content", pushChannel);
         }else{
             res.put("res",false );
@@ -101,9 +97,12 @@ public class PushChannelController {
         //获取当前登录用户
         String loginUserId = "1";
         log.info("请求name="+name);
-        Page<PushChannel> page = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
-        IPage<PushChannel> res = pushChannelService.listChannelsByName(loginUserId, type, name, page);
-        return JsonUtil.getString(res);
+        Page<PushChannel> pageFromUser = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
+        IPage<PushChannel> page = pushChannelService.listChannelsByName(loginUserId, type, name, pageFromUser);
+        for (PushChannel pushChannel : page.getRecords()) {
+            pushChannelService.addDesc(pushChannel);
+        }
+        return JsonUtil.getString(page);
     }
 
     @GetMapping("type/{type}/p/{pageNo}/s/{size}")
@@ -113,12 +112,10 @@ public class PushChannelController {
         String userId = "1";
         Page<PushChannel> pushChannelPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
         IPage<PushChannel> page = pushChannelService.listPagesByType(pushChannelPage,userId,type);
-        List<PushChannel> records = page.getRecords();
-        res.clear();
-        res.put("countTotal", pushChannelService.calRecordsByType(userId, type));
-        res.put("length", records.size());
-        res.put("content", records);
-        return JsonUtil.getString(res);
+        for (PushChannel pushChannel : page.getRecords()) {
+            pushChannelService.addDesc(pushChannel);
+        }
+        return JsonUtil.getString(page);
     }
 
 }

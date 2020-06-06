@@ -18,6 +18,14 @@ import java.util.Map;
 public interface ScheduleJobService extends IService<ScheduleJob> {
 //     任务管理相关
     /**
+    * @todo 添加任务界面数据
+    * @date 20/06/06 16:45
+    * @param
+    * @return
+    *
+    */
+    Map<String,Object>  addV();
+    /**
     * @todo 新增任务
     * @date 20/05/22 9:43
     * @param job 被调度的任务
@@ -96,6 +104,23 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
     */
     ScheduleJob setServiceAndMethod(ScheduleJob scheduleJob);
 
+    /**
+    * @todo 添加job 字典值得描述
+    * @date 20/06/06 18:56
+    * @param
+    * @return
+    *
+    */
+    void addJobDesc(ScheduleJob job);
+    
+    /**
+    * @todo  添加jobVo描述
+    * @date 20/06/06 18:59
+    * @param
+    * @return 
+    * 
+    */
+    void addJobVoDesc(ScheduleJobVO job);
 
 //    任务执行相关
 

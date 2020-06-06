@@ -1,20 +1,16 @@
 package com.enn.noticesystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.enn.noticesystem.constant.TemplateChannelStatusEnum;
+import com.enn.noticesystem.constant.PushChannelTypeEnum;
 import com.enn.noticesystem.dao.mapper.PushChannelMapper;
 import com.enn.noticesystem.domain.PushChannel;
 import com.enn.noticesystem.service.PushChannelService;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.net.URI;
-import java.util.List;
 
 /**
  * Project: NoticeSystem
@@ -27,7 +23,7 @@ import java.util.List;
 public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushChannel> implements PushChannelService {
 
     /**
-     * @param 用户id 渠道类型
+     * @param userId 渠道类型
      * @return
      * @todo lambda查询器
      * @date 20/05/21 18:30
@@ -52,6 +48,12 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     }
 
     @Override
+    public void addDesc(PushChannel pushChannel) {
+        pushChannel.setTypeDesc(PushChannelTypeEnum.getDescByCode(pushChannel.getType()));
+        pushChannel.setStatusDesc(TemplateChannelStatusEnum.getDescByCode(pushChannel.getStatus()));
+    }
+
+    @Override
     public boolean update(PushChannel pushChannel) {
         log.info("更新渠道数据，id=" + pushChannel.getId());
         return this.updateById(pushChannel);
@@ -67,8 +69,8 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
 
     @Override
     public PushChannel getChannelById(String id) {
+        log.info("获取id="+id+"的渠道信息");
         PushChannel res = this.getById(id);
-        log.info("推送渠道obj:" + res.toString());
         return res;
     }
 

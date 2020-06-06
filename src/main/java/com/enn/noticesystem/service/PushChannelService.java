@@ -22,7 +22,14 @@ public interface PushChannelService extends IService<PushChannel> {
     *
     */
     Integer add(PushChannel pushChannel);
-
+    /**
+    * @todo 添加状态信息描述
+    * @date 20/06/06 19:30
+    * @param
+    * @return
+    *
+    */
+    void addDesc(PushChannel pushChannel);
    /**
    * @todo 更新推送渠道信息
    * @date 20/05/20 11:07

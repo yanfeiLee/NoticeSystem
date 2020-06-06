@@ -2,17 +2,17 @@ package com.enn.noticesystem.constant;
 
 /**
  * Project: NoticeSystem
- * Create by liyanfei on 20/05/19 10:16
+ * Create by liyanfei on 20/06/06 19:51
  * Version: 1.0
  */
-public enum RequestType {
-    GET(0,"GET 请求"),
-    POST(1,"POST 请求");
+public enum TemplateChannelStatusEnum {
+    CLOSE(0,"停用"),
+    START(1,"启用");
 
     private final Integer code;
     private final String desc;
 
-    RequestType(final Integer value, final String desc) {
+    TemplateChannelStatusEnum(final Integer value, final String desc) {
         this.code=value;
         this.desc = desc;
     }
@@ -30,8 +30,8 @@ public enum RequestType {
     }
 
     public static String getDescByCode(Integer code){
-        RequestType[] values = values();
-        for (RequestType value : values) {
+        TemplateChannelStatusEnum[] values = values();
+        for (TemplateChannelStatusEnum value : values) {
             if(value.code == code){
                 return value.desc;
             }

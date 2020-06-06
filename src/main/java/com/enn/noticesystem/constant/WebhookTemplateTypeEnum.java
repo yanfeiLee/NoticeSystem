@@ -2,17 +2,20 @@ package com.enn.noticesystem.constant;
 
 /**
  * Project: NoticeSystem
- * Create by liyanfei on 20/05/19 10:16
+ * Create by liyanfei on 20/06/06 16:02
  * Version: 1.0
  */
-public enum RequestType {
-    GET(0,"GET 请求"),
-    POST(1,"POST 请求");
+public enum WebhookTemplateTypeEnum {
+//    1 text文本 2 markdown 3 图片 4 图文消息
+    TEXT(1,"Text"),
+    MARKDOWN(2,"Markdown"),
+    IMAGE(3,"图片"),
+    NEWS(4,"图文消息");
 
     private final Integer code;
     private final String desc;
 
-    RequestType(final Integer value, final String desc) {
+    WebhookTemplateTypeEnum(final Integer value, final String desc) {
         this.code=value;
         this.desc = desc;
     }
@@ -30,8 +33,8 @@ public enum RequestType {
     }
 
     public static String getDescByCode(Integer code){
-        RequestType[] values = values();
-        for (RequestType value : values) {
+        WebhookTemplateTypeEnum[] values = values();
+        for (WebhookTemplateTypeEnum value : values) {
             if(value.code == code){
                 return value.desc;
             }

@@ -3,6 +3,9 @@ package com.enn.noticesystem.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.enn.noticesystem.constant.PushChannelTypeEnum;
+import com.enn.noticesystem.constant.TemplateChannelStatusEnum;
+import com.enn.noticesystem.constant.WebhookTemplateTypeEnum;
 import com.enn.noticesystem.dao.mapper.MsgTemplateMapper;
 import com.enn.noticesystem.domain.MsgTemplate;
 import com.enn.noticesystem.service.MsgTemplateService;
@@ -10,7 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Project: NoticeSystem
@@ -35,6 +41,34 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
     }
 
     @Override
+    public Map<String, Object> addV(String type) {
+        Map<String,Object> res =new HashMap<>();
+        if(type.equals(PushChannelTypeEnum.ROBOT.getCode().toString())){
+            List<Map<String,Object>> webhookTemplateTypeList = new ArrayList<>();
+            Map<String,Object> text = new HashMap<>();
+            text.put("code",WebhookTemplateTypeEnum.TEXT.getCode());
+            text.put("desc", WebhookTemplateTypeEnum.TEXT.getDesc());
+            webhookTemplateTypeList.add(text);
+
+            Map<String,Object> markdown = new HashMap<>();
+            markdown.put("code",WebhookTemplateTypeEnum.MARKDOWN.getCode());
+            markdown.put("desc", WebhookTemplateTypeEnum.MARKDOWN.getDesc());
+            webhookTemplateTypeList.add(markdown);
+            Map<String,Object> image = new HashMap<>();
+            image.put("code",WebhookTemplateTypeEnum.IMAGE.getCode());
+            image.put("desc", WebhookTemplateTypeEnum.IMAGE.getDesc());
+            webhookTemplateTypeList.add(image);
+            Map<String,Object> news = new HashMap<>();
+            news.put("code",WebhookTemplateTypeEnum.NEWS.getCode());
+            news.put("desc", WebhookTemplateTypeEnum.NEWS.getDesc());
+            webhookTemplateTypeList.add(news);
+            res.put("webhookTemplateList", webhookTemplateTypeList);
+        }
+        //todo 其他模板类型 数据
+        return res;
+    }
+
+    @Override
     public Integer add(MsgTemplate msgTemplate) {
         log.info("添加模板");
         boolean res = this.save(msgTemplate);
@@ -44,6 +78,16 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
             return -1;
         }
 
+    }
+
+    @Override
+    public void addDesc(MsgTemplate msgTemplate) {
+        msgTemplate.setTypeDesc(PushChannelTypeEnum.getDescByCode(msgTemplate.getType()));
+        msgTemplate.setStatusDesc(TemplateChannelStatusEnum.getDescByCode(msgTemplate.getStatus()));
+        if(msgTemplate.getType()==PushChannelTypeEnum.ROBOT.getCode()){
+            msgTemplate.setRobotPushTypeDesc(WebhookTemplateTypeEnum.getDescByCode(msgTemplate.getRobotPushType()));
+        }
+        //todo 其他渠道描述信息
     }
 
     @Override

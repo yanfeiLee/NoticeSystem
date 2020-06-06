@@ -6,6 +6,7 @@ import com.enn.noticesystem.domain.MsgTemplate;
 import com.enn.noticesystem.domain.PushChannel;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Project: NoticeSystem
@@ -13,6 +14,15 @@ import java.util.List;
  * Version: 1.0
  */
 public interface MsgTemplateService extends IService<MsgTemplate> {
+   /**
+   * @todo 创建模板页面需要的数据
+   * @date 20/06/06 17:01
+   * @param
+   * @return
+   *
+   */
+    Map<String,Object> addV(String type);
+
     /**
      * @todo 新增模板
      * @date 20/05/20 11:02
@@ -21,7 +31,14 @@ public interface MsgTemplateService extends IService<MsgTemplate> {
      *
      */
     Integer add(MsgTemplate msgTemplate);
-
+    /**
+    * @todo 添加template 描述
+    * @date 20/06/06 19:11
+    * @param
+    * @return
+    *
+    */
+    void addDesc(MsgTemplate msgTemplate);
     /**
      * @todo 更新模板
      * @date 20/05/20 11:07

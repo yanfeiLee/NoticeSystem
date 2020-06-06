@@ -3,18 +3,19 @@ package com.enn.noticesystem.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.enn.noticesystem.domain.MsgTemplate;
-import com.enn.noticesystem.domain.PushChannel;
+import com.enn.noticesystem.constant.*;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
 import com.enn.noticesystem.service.*;
 import com.enn.noticesystem.util.JsonUtil;
+import com.sun.org.apache.bcel.internal.generic.NEW;
 import lombok.extern.slf4j.Slf4j;
+import org.quartz.Job;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import sun.rmi.runtime.Log;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,29 +46,9 @@ public class ScheduleJobController {
     @Autowired
     HttpServletRequest httpServletRequest;
 
-    @PostMapping("addV/type/{type}")
-    public String addV(@PathVariable("type") String type, @RequestBody Map<String, String> reqMap) {
-        res.clear();
-        //准备添加页面需要的数据
-        if (type.equals("1")) {
-//            //机器人
-//            //获取用户id
-//            String userId = "1";
-//            List<PushChannel> pushChannels = pushChannelService.listChannelsByType(userId, type);
-//            List<MsgTemplate> msgTemplates = msgTemplateService.listTemplatesByType(userId, type);
-//            res.put("pushChannels", pushChannels);
-//            res.put("msgTemplates", msgTemplates);
-
-        } else if (type.equals("2")) {
-
-        } else if (type.equals("3")) {
-
-        } else if (type.equals("4")) {
-
-        }
-
-
-        return JsonUtil.getString(res);
+    @GetMapping("addV")
+    public String addV(){
+       return JsonUtil.getString(scheduleJobService.addV());
     }
 
     @PostMapping("add")
@@ -107,6 +88,10 @@ public class ScheduleJobController {
         String userId = "1";
         Page<ScheduleJob> scheduleJobPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
         IPage<ScheduleJob> page = scheduleJobService.listScheduleJobsByName(userId, name, scheduleJobPage);
+        //添加描述信息
+        for (ScheduleJob job : page.getRecords()) {
+            scheduleJobService.addJobDesc(job);
+        }
         return JsonUtil.getString(page);
     }
 
@@ -119,6 +104,10 @@ public class ScheduleJobController {
 
         Page<ScheduleJob> scheduleJobPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
         IPage<ScheduleJob> page = scheduleJobService.listSchedulesJobsByPage(scheduleJobPage, userId);
+        //添加描述信息
+        for (ScheduleJob job : page.getRecords()) {
+            scheduleJobService.addJobDesc(job);
+        }
         return JsonUtil.getString(page);
     }
 
@@ -128,6 +117,7 @@ public class ScheduleJobController {
         res.clear();
         if(null != scheduleJobById){
             res.put("res", true);
+            scheduleJobService.addJobVoDesc(scheduleJobById);
             res.put("content", scheduleJobById);
         }else{
             res.put("res", false);

@@ -2,6 +2,7 @@ package com.enn.noticesystem.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.enn.noticesystem.constant.PushChannelTypeEnum;
 import com.enn.noticesystem.constant.RequestType;
 import com.enn.noticesystem.dao.api.ApiDao;
 import com.enn.noticesystem.domain.MsgTemplate;
@@ -35,12 +36,18 @@ public class MsgTemplateController {
 
     private HashMap<Object, Object> res = new HashMap<>();
 
+    @GetMapping("addV/type/{type}/formats")
+    public String addV(@PathVariable("type") String type){
+
+        return JsonUtil.getString(msgTemplateService.addV(type));
+    }
+
     @GetMapping("addV/type/{type}/apis/p/{pageNo}/s/{size}")
     public String addV(@PathVariable("type") String type,@PathVariable("pageNo") String pageNo,
                        @PathVariable("size") String size) {
         Map<String, Object> resMap = new HashMap<>();
         //准备添加页面需要的数据
-        if (type.equals("1")) {
+        if (type.equals(PushChannelTypeEnum.ROBOT.getCode().toString())) {
             //机器人
             //请求如意提供 指标的 所有接口
             //请求参数
@@ -50,12 +57,6 @@ public class MsgTemplateController {
             resMap = ruyiService.listApis(params);
             //todo 解析响应体 获取api名称、请求类型、查询数据所需参数 按需返回
 
-        } else if (type.equals("2")) {
-
-        } else if (type.equals("3")) {
-
-        } else if (type.equals("4")) {
-
         }
 
         return JsonUtil.getString(resMap);
@@ -64,7 +65,7 @@ public class MsgTemplateController {
     @GetMapping("addV/type/{type}/api/{id}")
     public String addV(@PathVariable("type") String type, @PathVariable("id") String id) {
         Map<String, Object> metricsMap = new HashMap<>();
-        if (type.equals("1")) {
+        if (type.equals(PushChannelTypeEnum.ROBOT.getCode().toString())) {
             //请求参数
             String reqParams = "{\"id\":" + id + "}";
             //获取meta列表[{"meta":"pv","metaName":"页面访问量"},{}]
@@ -113,10 +114,11 @@ public class MsgTemplateController {
         res.clear();
         MsgTemplate template = msgTemplateService.getTemplateById(id);
         if(null != template){
-            res.put(res, true);
+            res.put("res", true);
+            msgTemplateService.addDesc(template);
             res.put("content", template);
         }else{
-            res.put(res, false);
+            res.put("res", false);
             res.put("content", "模板不存在");
         }
         return JsonUtil.getString(res);
@@ -129,6 +131,9 @@ public class MsgTemplateController {
         String userId = "1";
         Page<MsgTemplate> msgTemplates = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
         IPage<MsgTemplate> page = msgTemplateService.listTemplatesByName(userId, type, name, msgTemplates);
+        for (MsgTemplate msgTemplate : page.getRecords()) {
+            msgTemplateService.addDesc(msgTemplate);
+        }
         return JsonUtil.getString(page);
     }
 
@@ -140,6 +145,9 @@ public class MsgTemplateController {
         String userId = "1";
         Page<MsgTemplate> msgTemplatePage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
         IPage<MsgTemplate> page = msgTemplateService.listPagesByType(msgTemplatePage, userId, type);
+        for (MsgTemplate msgTemplate : page.getRecords()) {
+            msgTemplateService.addDesc(msgTemplate);
+        }
         return JsonUtil.getString(page);
     }
 

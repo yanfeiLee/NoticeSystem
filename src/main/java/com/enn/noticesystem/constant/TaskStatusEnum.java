@@ -2,18 +2,21 @@ package com.enn.noticesystem.constant;
 
 /**
  * Project: NoticeSystem
- * Create by liyanfei on 20/05/19 10:16
+ * Create by liyanfei on 20/06/06 16:11
  * Version: 1.0
  */
-public enum RequestType {
-    GET(0,"GET 请求"),
-    POST(1,"POST 请求");
+public enum TaskStatusEnum {
+    //    任务状态：0 未启动  1 运行中  2 已暂停
+    WATIING(0, "未启动"),
+    RUNNING(1, "运行中"),
+    PAUSE(2, "已暂停");
+
 
     private final Integer code;
     private final String desc;
 
-    RequestType(final Integer value, final String desc) {
-        this.code=value;
+    TaskStatusEnum(final Integer value, final String desc) {
+        this.code = value;
         this.desc = desc;
     }
 
@@ -25,13 +28,9 @@ public enum RequestType {
         return desc;
     }
 
-    public String getEnumName() {
-        return name();
-    }
-
     public static String getDescByCode(Integer code){
-        RequestType[] values = values();
-        for (RequestType value : values) {
+        TaskStatusEnum[] values = values();
+        for (TaskStatusEnum value : values) {
             if(value.code == code){
                 return value.desc;
             }

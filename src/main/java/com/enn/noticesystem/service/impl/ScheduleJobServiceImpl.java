@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.enn.noticesystem.constant.JobOperateEnum;
+import com.enn.noticesystem.constant.*;
 import com.enn.noticesystem.dao.mapper.ScheduleJobMapper;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.swing.*;
 import java.security.interfaces.RSAKey;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,43 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
 
     @Autowired
     private QuartzService quartzService;
+
+
+    @Override
+    public Map<String, Object> addV() {
+        Map<String,Object> res = new HashMap<>();
+        List<Map<String,Object>> pushTimeTypeList = new ArrayList<>();
+        Map<String,Object> imm = new HashMap<>();
+        imm.put("code",PushTimeTypeEnum.IMMEDIATELY.getCode());
+        imm.put("desc", PushTimeTypeEnum.IMMEDIATELY.getDesc());
+        pushTimeTypeList.add(imm);
+        Map<String,Object> peri = new HashMap<>();
+        peri.put("code",PushTimeTypeEnum.PERIODIC.getCode());
+        peri.put("desc", PushTimeTypeEnum.PERIODIC.getDesc());
+        pushTimeTypeList.add(peri);
+        res.put("pushTimeType", pushTimeTypeList);
+
+        List<Map<String,Object>> pushChannelTypeList = new ArrayList<>();
+        Map<String,Object> robot = new HashMap<>();
+        robot.put("code",PushChannelTypeEnum.ROBOT.getCode());
+        robot.put("desc",PushChannelTypeEnum.ROBOT.getDesc());
+        pushChannelTypeList.add(robot);
+        Map<String,Object> msg = new HashMap<>();
+        msg.put("code",PushChannelTypeEnum.MESSAGE.getCode());
+        msg.put("desc",PushChannelTypeEnum.MESSAGE.getDesc());
+        pushChannelTypeList.add(msg);
+        Map<String,Object> siteMsg = new HashMap<>();
+        siteMsg.put("code",PushChannelTypeEnum.SITEMSG.getCode());
+        siteMsg.put("desc",PushChannelTypeEnum.SITEMSG.getDesc());
+        pushChannelTypeList.add(siteMsg);
+        Map<String,Object> email = new HashMap<>();
+        email.put("code",PushChannelTypeEnum.EMAIL.getCode());
+        email.put("desc",PushChannelTypeEnum.EMAIL.getDesc());
+        pushChannelTypeList.add(email);
+        res.put("pushChannelType", pushChannelTypeList);
+
+        return res;
+    }
 
     @Override
     public Integer add(ScheduleJob job) {
@@ -250,6 +288,27 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         }
 
         return scheduleJob;
+    }
+
+    @Override
+    public void addJobDesc(ScheduleJob job) {
+        job.setStatusDesc(TaskStatusEnum.getDescByCode(job.getStatus()));
+        job.setExecStatusDesc(TaskExecStatusEnum.getDescByCode(job.getExecStatus()));
+        job.setPushTimeTypeDesc(PushTimeTypeEnum.getDescByCode(job.getPushTimeType()));
+        job.setPushChannelTypeDesc(PushChannelTypeEnum.getDescByCode(job.getPushChannelType()));
+    }
+
+    @Override
+    public void addJobVoDesc(ScheduleJobVO job) {
+        //通用信息
+        job.setStatusDesc(TaskStatusEnum.getDescByCode(job.getStatus()));
+        job.setExecStatusDesc(TaskExecStatusEnum.getDescByCode(job.getExecStatus()));
+        job.setPushTimeTypeDesc(PushTimeTypeEnum.getDescByCode(job.getPushTimeType()));
+        job.setPushChannelTypeDesc(PushChannelTypeEnum.getDescByCode(job.getPushChannelType()));
+        //特地渠道推送任务的信息
+        if(job.getPushChannelType()==PushChannelTypeEnum.ROBOT.getCode()){
+            job.setTemplateRobotPushTypeDesc(WebhookTemplateTypeEnum.getDescByCode(job.getTemplateRobotPushType()));
+        }
     }
 
 

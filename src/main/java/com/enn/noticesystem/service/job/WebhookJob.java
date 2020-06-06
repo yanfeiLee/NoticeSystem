@@ -1,6 +1,8 @@
 package com.enn.noticesystem.service.job;
 
+import com.enn.noticesystem.constant.PushChannelTypeEnum;
 import com.enn.noticesystem.constant.RequestType;
+import com.enn.noticesystem.constant.WebhookTemplateTypeEnum;
 import com.enn.noticesystem.dao.api.ApiDao;
 import com.enn.noticesystem.domain.Msg;
 import com.enn.noticesystem.domain.ScheduleJob;
@@ -196,17 +198,17 @@ public class WebhookJob {
 
         Integer type = jobVO.getTemplateRobotPushType();
         Map mp = new HashMap<>();
-        if (1 == type) {
+        if (type==WebhookTemplateTypeEnum.TEXT.getCode()) {
             //文本
 
-        } else if (2 == type) {
+        } else if (WebhookTemplateTypeEnum.MARKDOWN.getCode()== type) {
             //markdown
             mp.put("msgtype", "markdown");
             mp.put("markdown", getMarkDownContent(data, jobVO.getTemplateRobotPushTemplate(), jobVO.getSubTitle()));
-        } else if (3 == type) {
+        } else if (WebhookTemplateTypeEnum.IMAGE.getCode() == type) {
             //图片
 
-        } else if (4 == type) {
+        } else if (WebhookTemplateTypeEnum.NEWS.getCode() == type) {
             //图文
         }
         return JsonUtil.getString(mp);

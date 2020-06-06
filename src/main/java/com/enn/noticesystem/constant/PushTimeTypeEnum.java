@@ -2,17 +2,18 @@ package com.enn.noticesystem.constant;
 
 /**
  * Project: NoticeSystem
- * Create by liyanfei on 20/05/19 10:16
+ * Create by liyanfei on 20/06/06 15:57
  * Version: 1.0
  */
-public enum RequestType {
-    GET(0,"GET 请求"),
-    POST(1,"POST 请求");
+public enum PushTimeTypeEnum {
+//1 立即发送 2 周期发送
+    IMMEDIATELY(1,"立即执行"),
+    PERIODIC(2,"周期执行");
 
     private final Integer code;
     private final String desc;
 
-    RequestType(final Integer value, final String desc) {
+    PushTimeTypeEnum(final Integer value, final String desc) {
         this.code=value;
         this.desc = desc;
     }
@@ -30,8 +31,8 @@ public enum RequestType {
     }
 
     public static String getDescByCode(Integer code){
-        RequestType[] values = values();
-        for (RequestType value : values) {
+        PushTimeTypeEnum[] values = values();
+        for (PushTimeTypeEnum value : values) {
             if(value.code == code){
                 return value.desc;
             }

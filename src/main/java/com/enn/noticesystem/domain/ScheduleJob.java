@@ -49,13 +49,15 @@ public class ScheduleJob {
      *  推送时间类型:1立即发送 2 周期发送
      */
     private int pushTimeType;
-
+    @TableField(exist = false)
+    private String pushTimeTypeDesc;
 
     /**
      *  推送渠道类型：1 机器人 2 短信 3 站内信 4 邮件
      */
     private int pushChannelType;
-
+    @TableField(exist = false)
+    private String pushChannelTypeDesc;
     /**
      *  推送渠道id （引用ns_push_channel表主键）
      */
@@ -76,11 +78,15 @@ public class ScheduleJob {
      * 状态 0.未启动 1.启动 2.暂停
      */
     private int status;
+    @TableField(exist = false)
+    private  String statusDesc;
 
     /**
      *  任务执行状态: 0 未执行 1 成功 2 失败
      */
     private int execStatus;
+    @TableField(exist = false)
+    private String execStatusDesc;
     /**
      *  任务上次成功执行时间
      */

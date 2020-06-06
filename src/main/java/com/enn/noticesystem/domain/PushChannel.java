@@ -36,6 +36,8 @@ public class PushChannel {
      */
 
     private Integer type;
+    @TableField(exist = false)
+    private String typeDesc;
 
     /**
      * 渠道创建者(关联user表主键)
@@ -43,9 +45,11 @@ public class PushChannel {
     private Integer creatorId;
 
     /**
-     * 渠道状态：0 关闭 1启动
+     * 渠道状态：0 关闭 1开启
      */
     private Integer status;
+    @TableField(exist = false)
+    private String statusDesc;
 
     /**
      * 删除标志：0 正常 1 删除
