@@ -61,7 +61,12 @@ public class PushChannelController {
         log.info(pushChannel.toString());
 
         res.clear();
-        res.put("res", pushChannelService.update(pushChannel));
+        boolean updateRes = pushChannelService.update(pushChannel);
+        res.put("res", updateRes);
+        res.put("info", updateRes?"更新成功":"更新失败");
+        if(updateRes){
+            res.put("content",pushChannelService.getChannelById(pushChannel.getId().toString()));
+        }
         return JsonUtil.getString(res);
     }
 
@@ -118,6 +123,19 @@ public class PushChannelController {
         String userId = "1";
         Page<PushChannel> pushChannelPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
         IPage<PushChannel> page = pushChannelService.listPagesByType(pushChannelPage,userId,type);
+        for (PushChannel pushChannel : page.getRecords()) {
+            pushChannelService.addDesc(pushChannel);
+        }
+        return JsonUtil.getString(page);
+    }
+
+    @GetMapping("type/{type}/status/{status}/p/{pageNo}/s/{size}")
+    public String getChannelsByStatusAndPage(@PathVariable("type")String type,@PathVariable("status")String status,@PathVariable("pageNo")String pageNo,
+                                    @PathVariable( "size") String size){
+        //获取用户id
+        String userId = "1";
+        Page<PushChannel> pushChannelPage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
+        IPage<PushChannel> page = pushChannelService.listPagesByTypeAndStatus(pushChannelPage,userId,type,status);
         for (PushChannel pushChannel : page.getRecords()) {
             pushChannelService.addDesc(pushChannel);
         }

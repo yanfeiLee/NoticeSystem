@@ -71,6 +71,7 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     public PushChannel getChannelById(String id) {
         log.info("获取id="+id+"的渠道信息");
         PushChannel res = this.getById(id);
+        this.addDesc(res);
         return res;
     }
 
@@ -99,6 +100,15 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     public IPage<PushChannel> listPagesByType(IPage<PushChannel> page, String userId, String type) {
         log.info("获取type="+type+"的分页信息");
         IPage<PushChannel> res = this.page(page, filterUserAndType(userId, type));
+        return res;
+    }
+
+    @Override
+    public IPage<PushChannel> listPagesByTypeAndStatus(IPage<PushChannel> page, String userId, String type, String status) {
+        log.info("获取type"+type+"status="+status+"的渠道list");
+        LambdaQueryWrapper<PushChannel> pushChannelLambdaQueryWrapper = filterUserAndType(userId, type);
+        LambdaQueryWrapper<PushChannel> allWrapper = pushChannelLambdaQueryWrapper.and(lqw -> lqw.eq(PushChannel::getStatus, status));
+        IPage<PushChannel> res = this.page(page,allWrapper );
         return res;
     }
 

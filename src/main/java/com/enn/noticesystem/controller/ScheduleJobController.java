@@ -3,22 +3,17 @@ package com.enn.noticesystem.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.enn.noticesystem.constant.*;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
 import com.enn.noticesystem.service.*;
 import com.enn.noticesystem.util.CommonUtil;
 import com.enn.noticesystem.util.JsonUtil;
-import com.sun.org.apache.bcel.internal.generic.NEW;
 import lombok.extern.slf4j.Slf4j;
-import org.quartz.Job;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -68,10 +63,14 @@ public class ScheduleJobController {
 
     @PostMapping("update")
     public String update(@RequestBody ScheduleJob scheduleJob) {
-        Boolean resUpdate = scheduleJobService.update(scheduleJob);
+        Boolean updateRes = scheduleJobService.update(scheduleJob);
 
         res.clear();
-        res.put("res", resUpdate);
+        res.put("res", updateRes);
+        res.put("info", updateRes?"更新成功":"更新失败");
+        if(updateRes){
+            res.put("content", scheduleJobService.getScheduleJobVOById(scheduleJob.getId()));
+        }
         return JsonUtil.getString(res);
     }
 
@@ -126,7 +125,6 @@ public class ScheduleJobController {
         res.clear();
         if(null != scheduleJobById){
             res.put("res", true);
-            scheduleJobService.addJobVoDesc(scheduleJobById);
             res.put("content", scheduleJobById);
         }else{
             res.put("res", false);

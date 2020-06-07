@@ -110,6 +110,7 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
     public MsgTemplate getTemplateById(String id) {
         log.info("模板信息:id=" + id);
         MsgTemplate res = this.getById(id);
+        this.addDesc(res);
         return res;
     }
 
@@ -145,6 +146,15 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
     public IPage<MsgTemplate> listPagesByType(IPage<MsgTemplate> page, String userId, String type) {
         log.info("查询type=" + type + "的分页信息");
         IPage<MsgTemplate> res = this.page(page, filterUserAndType(userId, type));
+        return res;
+    }
+
+    @Override
+    public IPage<MsgTemplate> listPagesByTypeAndStatus(IPage<MsgTemplate> page, String userId, String type, String status) {
+        log.info("查询type=" + type + "status="+status+"的分页信息");
+        LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = filterUserAndType(userId, type);
+        LambdaQueryWrapper<MsgTemplate> allWrapper = msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getStatus, status));
+        IPage<MsgTemplate> res = this.page(page, allWrapper);
         return res;
     }
 

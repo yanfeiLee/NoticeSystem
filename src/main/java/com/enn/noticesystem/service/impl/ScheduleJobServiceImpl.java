@@ -113,7 +113,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
 
     @Override
     public Boolean update(ScheduleJob job) {
-        log.info("更新调度任务：" + job.getName());
+        log.info("更新调度任务：" + job.getId());
         boolean res = this.updateById(job);
         return res;
     }
@@ -128,21 +128,21 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         try {
             if (null != job) {
                 //判断首次启动还是恢复任务
-                if (0 == job.getStatus()) {
+                if (TaskStatusEnum.WATIING.getCode() == job.getStatus()) {
                     quartzService.addJob(job);
                     //修改任务状态
-                    job.setStatus(1);
+                    job.setStatus(TaskStatusEnum.RUNNING.getCode());
                     this.update(job);
                     res = true;
                     info = "启动成功";
-                } else if (1 == job.getStatus()) {
+                } else if (TaskStatusEnum.RUNNING.getCode() == job.getStatus()) {
                     //任务已启动
                     res = false;
                     info = "重复启动任务";
                 } else {
                     quartzService.operateJob(JobOperateEnum.START, job);
                     //修改任务状态
-                    job.setStatus(1);
+                    job.setStatus(TaskStatusEnum.RUNNING.getCode());
                     this.update(job);
                     res = true;
                     info = "恢复任务成功";
@@ -155,6 +155,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         } finally {
             mp.put("res", res);
             mp.put("info", info);
+            mp.put("content", job);
             return mp;
         }
     }
@@ -167,13 +168,12 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         ScheduleJob job = this.getScheduleJobById(id);
         try {
             if (null != job) {
-
-                if (2 == job.getStatus()) {
+                if (TaskStatusEnum.PAUSE.getCode() == job.getStatus()) {
                     info = "任务已暂停,重复暂停";
                 } else {
                     quartzService.operateJob(JobOperateEnum.PAUSE, job);
                     //修改任务状态
-                    job.setStatus(2);
+                    job.setStatus(TaskStatusEnum.PAUSE.getCode());
                     this.update(job);
                     res = true;
                     info = "暂停成功";
@@ -187,6 +187,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         } finally {
             mp.put("res", res);
             mp.put("info", info);
+            mp.put("content",job );
             return mp;
         }
     }
@@ -233,6 +234,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         log.info("获取id=" + id + "的job的任务信息");
         ScheduleJob job = this.getById(id);
         if (null != job) {
+            addJobDesc(job);
             return job;
         } else {
             log.error("任务id=" + id + "的任务不存在！");
@@ -271,6 +273,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         log.info("获取id=" + id + "的job的详细信息");
         ScheduleJobVO scheduleJobDetail = this.getBaseMapper().getScheduleJobDetail(id);
         if (null != scheduleJobDetail) {
+            addJobVoDesc(scheduleJobDetail);
             return scheduleJobDetail;
         } else {
             log.error("任务id=" + id + "的任务不存在！");

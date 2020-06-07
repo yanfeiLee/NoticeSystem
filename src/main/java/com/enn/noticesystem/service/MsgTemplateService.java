@@ -99,4 +99,16 @@ public interface MsgTemplateService extends IService<MsgTemplate> {
      *
      */
     IPage<MsgTemplate> listPagesByType(IPage<MsgTemplate> page, String userId, String type);
+
+
+    /**
+    * @todo 根据模块状态 类型 获取模板分页list
+    * @date 20/06/07 21:51
+    * @param
+    * @return
+    *
+    */
+    IPage<MsgTemplate> listPagesByTypeAndStatus(IPage<MsgTemplate> page, String userId, String type,String status);
+
+
 }

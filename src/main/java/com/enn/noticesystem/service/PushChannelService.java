@@ -82,4 +82,15 @@ public interface PushChannelService extends IService<PushChannel> {
      *
      */
      IPage<PushChannel>  listPagesByType(IPage<PushChannel> page,String userId,String type);
+
+     /**
+     * @todo 根据状态 类型 获取分页信息
+     * @date 20/06/07 21:41
+     * @param
+     * @return
+     *
+     */
+     IPage<PushChannel>  listPagesByTypeAndStatus(IPage<PushChannel> page,String userId,String type,String status);
+
+
 }

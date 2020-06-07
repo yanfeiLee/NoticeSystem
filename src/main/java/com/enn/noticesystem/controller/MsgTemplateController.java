@@ -97,7 +97,12 @@ public class MsgTemplateController {
     public String update(@RequestBody MsgTemplate msgTemplate) {
 
         res.clear();
-        res.put("res", msgTemplateService.update(msgTemplate));
+        boolean updateRes = msgTemplateService.update(msgTemplate);
+        res.put("res",updateRes );
+        res.put("info", updateRes?"更新成功":"更新失败");
+        if(updateRes){
+            res.put("content", msgTemplateService.getTemplateById(msgTemplate.getId().toString()));
+        }
         return JsonUtil.getString(res);
     }
 
@@ -157,6 +162,23 @@ public class MsgTemplateController {
         }
         return JsonUtil.getString(page);
     }
+
+    @GetMapping("type/{type}/status/{status}/p/{pageNo}/s/{size}")
+    public String getTemplatesByPageAndStatus(@PathVariable("type") String type,@PathVariable("status") String status, @PathVariable("pageNo") String pageNo,
+                                     @PathVariable("size") String size) {
+        //获取用户id
+        String userId = "1";
+        Page<MsgTemplate> msgTemplatePage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
+        IPage<MsgTemplate> page = msgTemplateService.listPagesByTypeAndStatus(msgTemplatePage, userId, type,status);
+        for (MsgTemplate msgTemplate : page.getRecords()) {
+            msgTemplateService.addDesc(msgTemplate);
+        }
+        return JsonUtil.getString(page);
+    }
+
+
+
+
 
     //test
     @GetMapping("testRYData")
