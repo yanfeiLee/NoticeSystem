@@ -43,6 +43,13 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     @Autowired
     private QuartzService quartzService;
 
+    private LambdaQueryWrapper<ScheduleJob> filterJobByUserId(String userId){
+        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        scheduleJobLambdaQueryWrapper.and(lqw->
+                lqw.eq(ScheduleJob::getCreatorId , Integer.valueOf(userId))
+               ) .orderByDesc(ScheduleJob::getCreatedTime);
+        return scheduleJobLambdaQueryWrapper;
+    }
 
     @Override
     public Map<String, Object> addV() {
@@ -236,17 +243,16 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     @Override
     public IPage<ScheduleJob> listScheduleJobsByName(String userId, String name, Page<ScheduleJob> page) {
         log.info("查询ScheduleJob:" + name);
-        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId).eq(ScheduleJob::getName, name));
-        IPage<ScheduleJob> res = this.page(page, scheduleJobLambdaQueryWrapper);
+        LambdaQueryWrapper<ScheduleJob> allWrapper = filterJobByUserId(userId);
+        allWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId).eq(ScheduleJob::getName, name));
+        IPage<ScheduleJob> res = this.page(page, allWrapper);
         return res;
     }
 
 
     @Override
     public Integer calRecordsByType(String userId) {
-        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId));
+        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = filterJobByUserId(userId);
         int count = this.count(scheduleJobLambdaQueryWrapper);
         return count;
     }
@@ -254,9 +260,9 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     @Override
     public IPage<ScheduleJob> listSchedulesJobsByPage(IPage<ScheduleJob> page, String userId) {
         log.info("获取用id=" + userId + " job的分页信息");
-        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId));
-        IPage<ScheduleJob> res = this.page(page, scheduleJobLambdaQueryWrapper);
+        LambdaQueryWrapper<ScheduleJob> allWrapper = filterJobByUserId(userId);
+        allWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId));
+        IPage<ScheduleJob> res = this.page(page, allWrapper);
         return res;
     }
 

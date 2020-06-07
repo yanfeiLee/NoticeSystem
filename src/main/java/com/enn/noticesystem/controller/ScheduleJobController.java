@@ -7,6 +7,7 @@ import com.enn.noticesystem.constant.*;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
 import com.enn.noticesystem.service.*;
+import com.enn.noticesystem.util.CommonUtil;
 import com.enn.noticesystem.util.JsonUtil;
 import com.sun.org.apache.bcel.internal.generic.NEW;
 import lombok.extern.slf4j.Slf4j;
@@ -74,11 +75,19 @@ public class ScheduleJobController {
         return JsonUtil.getString(res);
     }
 
-    @GetMapping("del/{id}")
-    public String delete(@PathVariable("id") String id) {
-
-        Map<String, Object> resDel = scheduleJobService.delete(Integer.valueOf(id));
-        return JsonUtil.getString(resDel);
+    @PostMapping("del")
+    public String delete(@RequestBody String body) {
+        res.clear();
+        Map<String, Object> idValidate = CommonUtil.idValidate(body);
+        if(idValidate.get("id").equals("")){
+            String info = idValidate.get("info").toString();
+            res.put("res",info);
+            log.error("请求错误:"+info);
+            return JsonUtil.getString(res);
+        }else{
+            Map<String, Object> resDel = scheduleJobService.delete(Integer.valueOf(idValidate.get("id").toString()));
+            return JsonUtil.getString(resDel);
+        }
     }
 
     @GetMapping("name/{name}/p/{pageNo}/s/{size}")

@@ -36,7 +36,9 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
      */
     private LambdaQueryWrapper<MsgTemplate> filterUserAndType(String userId, String type) {
         LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getCreatorId, userId).eq(MsgTemplate::getType, type));
+        msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getCreatorId, userId)
+                .eq(MsgTemplate::getType, type)
+        ).orderByDesc(MsgTemplate::getCreatedTime);
         return msgTemplateLambdaQueryWrapper;
     }
 
@@ -114,7 +116,8 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
     @Override
     public IPage<MsgTemplate> listTemplatesByName(String userId, String type, String name, IPage<MsgTemplate> page) {
         LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = filterUserAndType(userId, type);
-        LambdaQueryWrapper<MsgTemplate> allWarpper = msgTemplateLambdaQueryWrapper.and(lqw -> lqw.eq(MsgTemplate::getName, name));
+        LambdaQueryWrapper<MsgTemplate> allWarpper = msgTemplateLambdaQueryWrapper.and(lqw ->
+                lqw.eq(MsgTemplate::getName, name));
         IPage<MsgTemplate> res = this.page(page, allWarpper);
         log.info("用户id=" + userId + ",模板名为：" + name + "的模板有 :size=" + res.getRecords().size());
         return res;

@@ -39,6 +39,7 @@ public class MsgTemplate {
      *  模板状态：0关闭 1开启
      */
     private Integer status;
+
     @TableField(exist = false)
     private String statusDesc;
 

@@ -31,8 +31,8 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     private LambdaQueryWrapper<PushChannel> filterUserAndType(String userId, String type) {
         LambdaQueryWrapper<PushChannel> pushChannelLambdaQueryWrapper = new LambdaQueryWrapper<>();
         pushChannelLambdaQueryWrapper.and(lqw -> lqw.eq(PushChannel::getCreatorId, userId)
-                .eq(PushChannel::getType, type)
-        );
+                .eq(PushChannel::getType,type)).orderByDesc(PushChannel::getCreatedTime);;
+
         return pushChannelLambdaQueryWrapper;
     }
 

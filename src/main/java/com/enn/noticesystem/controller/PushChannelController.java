@@ -5,14 +5,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.enn.noticesystem.constant.PushChannelTypeEnum;
 import com.enn.noticesystem.domain.PushChannel;
 import com.enn.noticesystem.service.PushChannelService;
+import com.enn.noticesystem.util.CommonUtil;
 import com.enn.noticesystem.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.reflect.Type;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -66,10 +65,17 @@ public class PushChannelController {
         return JsonUtil.getString(res);
     }
 
-    @PostMapping(value = "del/{id}")
-    public String del(@PathVariable("id") String id) {
+    @PostMapping(value = "del")
+    public String del(@RequestBody String body) {
         res.clear();
-        res.put("res", pushChannelService.delete(Integer.valueOf(id)));
+        Map<String, Object> idValidate = CommonUtil.idValidate(body);
+        if(idValidate.get("id").equals("")){
+            String info = idValidate.get("info").toString();
+            res.put("res",info);
+            log.error("请求错误:"+info);
+        }else{
+            res.put("res", pushChannelService.delete(Integer.valueOf(idValidate.get("id").toString())));
+        }
         return JsonUtil.getString(res);
     }
 

@@ -8,6 +8,7 @@ import com.enn.noticesystem.dao.api.ApiDao;
 import com.enn.noticesystem.domain.MsgTemplate;
 import com.enn.noticesystem.service.MsgTemplateService;
 import com.enn.noticesystem.service.RuyiService;
+import com.enn.noticesystem.util.CommonUtil;
 import com.enn.noticesystem.util.JsonUtil;
 import com.enn.noticesystem.util.PropertiesUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -100,11 +101,17 @@ public class MsgTemplateController {
         return JsonUtil.getString(res);
     }
 
-    @PostMapping("del/{id}")
-    public String del(@PathVariable("id") String id) {
-
+    @PostMapping("del")
+    public String del(@RequestBody String body) {
         res.clear();
-        res.put("res", msgTemplateService.delete(Integer.valueOf(id)));
+        Map<String, Object> idValidate = CommonUtil.idValidate(body);
+        if(idValidate.get("id").equals("")){
+            String info = idValidate.get("info").toString();
+            res.put("res",info);
+            log.error("请求错误:"+info);
+        }else{
+            res.put("res", msgTemplateService.delete(Integer.valueOf(idValidate.get("id").toString())));
+        }
         return JsonUtil.getString(res);
     }
 

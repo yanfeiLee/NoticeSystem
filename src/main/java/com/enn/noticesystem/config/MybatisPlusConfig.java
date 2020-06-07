@@ -54,7 +54,7 @@ public class MybatisPlusConfig {
      *  打印sql
      */
 
-    /*@Bean
+    @Bean
     public PerformanceInterceptor performanceInterceptor() {
         PerformanceInterceptor performanceInterceptor = new PerformanceInterceptor();
         //格式化sql语句
@@ -62,5 +62,5 @@ public class MybatisPlusConfig {
         properties.setProperty("format", "true");
         performanceInterceptor.setProperties(properties);
         return performanceInterceptor;
-    }*/
+    }
 }
