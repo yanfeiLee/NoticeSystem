@@ -78,7 +78,7 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     @Override
     public IPage<PushChannel> listChannelsByName(String userId, String type, String name, IPage<PushChannel> page) {
         LambdaQueryWrapper<PushChannel> pushChannelLambdaQueryWrapper = filterUserAndType(userId, type);
-        LambdaQueryWrapper<PushChannel> allWrapper = pushChannelLambdaQueryWrapper.and(lqw -> lqw.eq(PushChannel::getName, name));
+        LambdaQueryWrapper<PushChannel> allWrapper = pushChannelLambdaQueryWrapper.and(lqw -> lqw.like(PushChannel::getName, name));
 
         IPage<PushChannel> res = this.page(page, allWrapper);
 

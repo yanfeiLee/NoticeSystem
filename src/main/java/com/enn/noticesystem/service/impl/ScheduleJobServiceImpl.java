@@ -246,7 +246,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     public IPage<ScheduleJob> listScheduleJobsByName(String userId, String name, Page<ScheduleJob> page) {
         log.info("查询ScheduleJob:" + name);
         LambdaQueryWrapper<ScheduleJob> allWrapper = filterJobByUserId(userId);
-        allWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId).eq(ScheduleJob::getName, name));
+        allWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId).like(ScheduleJob::getName, name));
         IPage<ScheduleJob> res = this.page(page, allWrapper);
         return res;
     }

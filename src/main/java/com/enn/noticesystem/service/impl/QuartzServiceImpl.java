@@ -3,6 +3,7 @@ package com.enn.noticesystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.enn.noticesystem.constant.JobOperateEnum;
+import com.enn.noticesystem.constant.TaskStatusEnum;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.plugin.quartz.QuartzFactory;
 import com.enn.noticesystem.service.QuartzService;
@@ -42,7 +43,7 @@ public class QuartzServiceImpl implements QuartzService {
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
         scheduleJobLambdaQueryWrapper.and(
                 //过滤未启动任务
-                lqw -> lqw.ne(ScheduleJob::getStatus, "0")
+                lqw -> lqw.ne(ScheduleJob::getStatus, TaskStatusEnum.WATIING.getCode())
         );
         List<ScheduleJob> scheduleJobs = jobService.list(scheduleJobLambdaQueryWrapper);
         if (scheduleJobs != null) {
@@ -50,7 +51,7 @@ public class QuartzServiceImpl implements QuartzService {
             for (ScheduleJob job : scheduleJobs) {
                 log.info("初始化定时任务：id=" + job.getId()+"任务状态："+job.getStatus());
                 addJob(job);
-                if (job.getStatus() == 2) {
+                if (job.getStatus() == TaskStatusEnum.PAUSE.getCode()) {
                     //将status=2(暂停中)的任务加入调度器，状态置为暂停
                     try {
                         log.info("暂停任务，id="+job.getId());

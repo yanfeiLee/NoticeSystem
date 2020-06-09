@@ -47,23 +47,24 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
         Map<String,Object> res =new HashMap<>();
         if(type.equals(PushChannelTypeEnum.ROBOT.getCode().toString())){
             List<Map<String,Object>> webhookTemplateTypeList = new ArrayList<>();
-            Map<String,Object> text = new HashMap<>();
-            text.put("code",WebhookTemplateTypeEnum.TEXT.getCode());
-            text.put("desc", WebhookTemplateTypeEnum.TEXT.getDesc());
-            webhookTemplateTypeList.add(text);
-
             Map<String,Object> markdown = new HashMap<>();
             markdown.put("code",WebhookTemplateTypeEnum.MARKDOWN.getCode());
             markdown.put("desc", WebhookTemplateTypeEnum.MARKDOWN.getDesc());
             webhookTemplateTypeList.add(markdown);
-            Map<String,Object> image = new HashMap<>();
-            image.put("code",WebhookTemplateTypeEnum.IMAGE.getCode());
-            image.put("desc", WebhookTemplateTypeEnum.IMAGE.getDesc());
-            webhookTemplateTypeList.add(image);
-            Map<String,Object> news = new HashMap<>();
-            news.put("code",WebhookTemplateTypeEnum.NEWS.getCode());
-            news.put("desc", WebhookTemplateTypeEnum.NEWS.getDesc());
-            webhookTemplateTypeList.add(news);
+
+//            Map<String,Object> text = new HashMap<>();
+//            text.put("code",WebhookTemplateTypeEnum.TEXT.getCode());
+//            text.put("desc", WebhookTemplateTypeEnum.TEXT.getDesc());
+//            webhookTemplateTypeList.add(text);
+//
+//            Map<String,Object> image = new HashMap<>();
+//            image.put("code",WebhookTemplateTypeEnum.IMAGE.getCode());
+//            image.put("desc", WebhookTemplateTypeEnum.IMAGE.getDesc());
+//            webhookTemplateTypeList.add(image);
+//            Map<String,Object> news = new HashMap<>();
+//            news.put("code",WebhookTemplateTypeEnum.NEWS.getCode());
+//            news.put("desc", WebhookTemplateTypeEnum.NEWS.getDesc());
+//            webhookTemplateTypeList.add(news);
             res.put("webhookTemplateList", webhookTemplateTypeList);
         }
         //todo 其他模板类型 数据
@@ -118,7 +119,7 @@ public class MsgTemplateServiceImpl extends ServiceImpl<MsgTemplateMapper, MsgTe
     public IPage<MsgTemplate> listTemplatesByName(String userId, String type, String name, IPage<MsgTemplate> page) {
         LambdaQueryWrapper<MsgTemplate> msgTemplateLambdaQueryWrapper = filterUserAndType(userId, type);
         LambdaQueryWrapper<MsgTemplate> allWarpper = msgTemplateLambdaQueryWrapper.and(lqw ->
-                lqw.eq(MsgTemplate::getName, name));
+                lqw.like(MsgTemplate::getName, name));
         IPage<MsgTemplate> res = this.page(page, allWarpper);
         log.info("用户id=" + userId + ",模板名为：" + name + "的模板有 :size=" + res.getRecords().size());
         return res;

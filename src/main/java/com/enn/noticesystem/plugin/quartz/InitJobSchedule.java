@@ -13,7 +13,7 @@ import sun.rmi.runtime.Log;
 public class InitJobSchedule implements CommandLineRunner {
 
     @Autowired
-    private QuartzService taskService;
+    private QuartzService quartzService;
 
     /**
      * 任务调度开始
@@ -23,7 +23,7 @@ public class InitJobSchedule implements CommandLineRunner {
     @Override
     public void run(String... strings) throws Exception {
         log.info("系统启动，初始化定时任务");
-        taskService.timingTask();
+        quartzService.timingTask();
         log.info("初始化定时任务结束");
     }
 }
