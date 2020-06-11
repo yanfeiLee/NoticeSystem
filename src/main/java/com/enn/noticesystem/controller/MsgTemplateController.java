@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.enn.noticesystem.constant.PushChannelTypeEnum;
 import com.enn.noticesystem.constant.RequestType;
+import com.enn.noticesystem.constant.TaskStatusEnum;
+import com.enn.noticesystem.constant.TemplateChannelStatusEnum;
 import com.enn.noticesystem.dao.api.ApiDao;
 import com.enn.noticesystem.domain.MsgTemplate;
+import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.service.MsgTemplateService;
 import com.enn.noticesystem.service.RuyiService;
+import com.enn.noticesystem.service.ScheduleJobService;
 import com.enn.noticesystem.util.CommonUtil;
 import com.enn.noticesystem.util.JsonUtil;
 import com.enn.noticesystem.util.PropertiesUtil;
@@ -16,6 +20,7 @@ import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +40,19 @@ public class MsgTemplateController {
     @Autowired
     RuyiService ruyiService;
 
+    @Autowired
+    ScheduleJobService scheduleJobService;
+
     private HashMap<Object, Object> res = new HashMap<>();
 
     @GetMapping("addV/type/{type}/formats")
-    public String addV(@PathVariable("type") String type){
+    public String addV(@PathVariable("type") String type) {
 
         return JsonUtil.getString(msgTemplateService.addV(type));
     }
 
     @GetMapping("addV/type/{type}/apis/p/{pageNo}/s/{size}")
-    public String addV(@PathVariable("type") String type,@PathVariable("pageNo") String pageNo,
+    public String addV(@PathVariable("type") String type, @PathVariable("pageNo") String pageNo,
                        @PathVariable("size") String size) {
         Map<String, Object> resMap = new HashMap<>();
         //准备添加页面需要的数据
@@ -52,8 +60,8 @@ public class MsgTemplateController {
             //机器人
             //请求如意提供 指标的 所有接口
             //请求参数
-            Map<String,Object> params = new HashMap<>();
-            params.put("pageNum",pageNo);
+            Map<String, Object> params = new HashMap<>();
+            params.put("pageNum", pageNo);
             params.put("pageSize", size);
             resMap = ruyiService.listApis(params);
             //todo 解析响应体 获取api名称、请求类型、查询数据所需参数 按需返回
@@ -95,13 +103,33 @@ public class MsgTemplateController {
 
     @PostMapping("update")
     public String update(@RequestBody MsgTemplate msgTemplate) {
-
         res.clear();
-        boolean updateRes = msgTemplateService.update(msgTemplate);
-        res.put("res",updateRes );
-        res.put("info", updateRes?"更新成功":"更新失败");
-        if(updateRes){
-            res.put("content", msgTemplateService.getTemplateById(msgTemplate.getId().toString()));
+        //停用模板时，验证是否有任务在使用且任务在运行中
+        List<ScheduleJob> jobList = new ArrayList<>();
+        if (msgTemplate.getStatus() == TemplateChannelStatusEnum.CLOSE.getCode()) {
+            jobList = scheduleJobService.listScheduleJobsByTemplateId(msgTemplate.getCreatorId().toString(),
+                    msgTemplate.getId().toString(),TaskStatusEnum.RUNNING.getCode().toString());
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        int size = jobList.size();
+        if (size != 0) {
+            stringBuilder.append("【");
+            for (int i = 0; i < size; i++) {
+                stringBuilder.append(jobList.get(i).getName());
+                if (i != size - 1) {
+                    stringBuilder.append("，");
+                }
+            }
+            stringBuilder.append("】");
+            res.put("res", false);
+            res.put("info", "任务"+stringBuilder+"正在使用该模板，停用前请暂停相关任务!");
+        }else{
+            boolean updateRes = msgTemplateService.update(msgTemplate);
+            res.put("res", updateRes);
+            res.put("info", updateRes ? "更新成功" : "更新失败");
+            if (updateRes) {
+                res.put("content", msgTemplateService.getTemplateById(msgTemplate.getId().toString()));
+            }
         }
         return JsonUtil.getString(res);
     }
@@ -110,11 +138,11 @@ public class MsgTemplateController {
     public String del(@RequestBody String body) {
         res.clear();
         Map<String, Object> idValidate = CommonUtil.idValidate(body);
-        if(idValidate.get("id").equals("")){
+        if (idValidate.get("id").equals("")) {
             String info = idValidate.get("info").toString();
-            res.put("res",info);
-            log.error("请求错误:"+info);
-        }else{
+            res.put("res", info);
+            log.error("请求错误:" + info);
+        } else {
             res.put("res", msgTemplateService.delete(Integer.valueOf(idValidate.get("id").toString())));
         }
         return JsonUtil.getString(res);
@@ -125,11 +153,11 @@ public class MsgTemplateController {
 
         res.clear();
         MsgTemplate template = msgTemplateService.getTemplateById(id);
-        if(null != template){
+        if (null != template) {
             res.put("res", true);
             msgTemplateService.addDesc(template);
             res.put("content", template);
-        }else{
+        } else {
             res.put("res", false);
             res.put("content", "模板不存在");
         }
@@ -137,7 +165,7 @@ public class MsgTemplateController {
     }
 
     @GetMapping("type/{type}/name/{name}/p/{pageNo}/s/{size}")
-    public String getTemplateByName(@PathVariable("type") String type,@PathVariable("name") String name,@PathVariable("pageNo") String pageNo,
+    public String getTemplateByName(@PathVariable("type") String type, @PathVariable("name") String name, @PathVariable("pageNo") String pageNo,
                                     @PathVariable("size") String size) {
         //获取当前登录用户
         String userId = "1";
@@ -164,25 +192,21 @@ public class MsgTemplateController {
     }
 
     @GetMapping("type/{type}/status/{status}/p/{pageNo}/s/{size}")
-    public String getTemplatesByPageAndStatus(@PathVariable("type") String type,@PathVariable("status") String status, @PathVariable("pageNo") String pageNo,
-                                     @PathVariable("size") String size) {
+    public String getTemplatesByPageAndStatus(@PathVariable("type") String type, @PathVariable("status") String status, @PathVariable("pageNo") String pageNo,
+                                              @PathVariable("size") String size) {
         //获取用户id
         String userId = "1";
         Page<MsgTemplate> msgTemplatePage = new Page<>(Long.valueOf(pageNo), Long.valueOf(size));
-        IPage<MsgTemplate> page = msgTemplateService.listPagesByTypeAndStatus(msgTemplatePage, userId, type,status);
+        IPage<MsgTemplate> page = msgTemplateService.listPagesByTypeAndStatus(msgTemplatePage, userId, type, status);
         for (MsgTemplate msgTemplate : page.getRecords()) {
             msgTemplateService.addDesc(msgTemplate);
         }
         return JsonUtil.getString(page);
     }
 
-
-
-
-
     //test
     @GetMapping("testRYData")
-    public String getTest(){
+    public String getTest() {
         String params = "{\n" +
                 "    \"apiId\": 3,\n" +
                 "    \"datasourceName\": \"RDS_MYSQL\",\n" +
@@ -212,7 +236,7 @@ public class MsgTemplateController {
                 "    ]\n" +
                 "}";
         Map<String, Object> contentByApi = ruyiService.getContentByApi(params);
-        return  JsonUtil.getString(contentByApi);
+        return JsonUtil.getString(contentByApi);
     }
 }
 

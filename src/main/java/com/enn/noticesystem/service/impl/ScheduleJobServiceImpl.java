@@ -7,21 +7,21 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.enn.noticesystem.constant.*;
 import com.enn.noticesystem.dao.mapper.ScheduleJobMapper;
+import com.enn.noticesystem.domain.MsgTemplate;
+import com.enn.noticesystem.domain.PushChannel;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.domain.vo.ScheduleJobVO;
+import com.enn.noticesystem.service.MsgTemplateService;
+import com.enn.noticesystem.service.PushChannelService;
 import com.enn.noticesystem.service.QuartzService;
 import com.enn.noticesystem.service.ScheduleJobService;
 import com.enn.noticesystem.service.job.WebhookJob;
-import com.enn.noticesystem.util.CronUtil;
-import com.enn.noticesystem.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.swing.*;
-import java.security.interfaces.RSAKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,44 +43,57 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
     @Autowired
     private QuartzService quartzService;
 
-    private LambdaQueryWrapper<ScheduleJob> filterJobByUserId(String userId){
+    @Autowired
+    private PushChannelService pushChannelService;
+    @Autowired
+    private MsgTemplateService msgTemplateService;
+
+    private LambdaQueryWrapper<ScheduleJob> filterJobByUserId(String userId) {
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        scheduleJobLambdaQueryWrapper.and(lqw->
-                lqw.eq(ScheduleJob::getCreatorId , Integer.valueOf(userId))
-               ) .orderByDesc(ScheduleJob::getCreatedTime);
+        scheduleJobLambdaQueryWrapper.and(lqw ->
+                lqw.eq(ScheduleJob::getCreatorId, Integer.valueOf(userId))
+        ).orderByDesc(ScheduleJob::getCreatedTime);
         return scheduleJobLambdaQueryWrapper;
     }
 
+    private LambdaQueryWrapper<ScheduleJob> filterJobByUserIdAndStatus(String userId, String status) {
+        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, Integer.valueOf(userId))
+                .eq(ScheduleJob::getStatus, Integer.valueOf(status)));
+        return scheduleJobLambdaQueryWrapper;
+    }
+
+
     @Override
     public Map<String, Object> addV() {
-        Map<String,Object> res = new HashMap<>();
-        List<Map<String,Object>> pushTimeTypeList = new ArrayList<>();
-        Map<String,Object> imm = new HashMap<>();
-        imm.put("code",PushTimeTypeEnum.IMMEDIATELY.getCode());
+        Map<String, Object> res = new HashMap<>();
+        List<Map<String, Object>> pushTimeTypeList = new ArrayList<>();
+        Map<String, Object> imm = new HashMap<>();
+        imm.put("code", PushTimeTypeEnum.IMMEDIATELY.getCode());
         imm.put("desc", PushTimeTypeEnum.IMMEDIATELY.getDesc());
         pushTimeTypeList.add(imm);
-        Map<String,Object> peri = new HashMap<>();
-        peri.put("code",PushTimeTypeEnum.PERIODIC.getCode());
+        Map<String, Object> peri = new HashMap<>();
+        peri.put("code", PushTimeTypeEnum.PERIODIC.getCode());
         peri.put("desc", PushTimeTypeEnum.PERIODIC.getDesc());
         pushTimeTypeList.add(peri);
         res.put("pushTimeType", pushTimeTypeList);
 
-        List<Map<String,Object>> pushChannelTypeList = new ArrayList<>();
-        Map<String,Object> robot = new HashMap<>();
-        robot.put("code",PushChannelTypeEnum.ROBOT.getCode());
-        robot.put("desc",PushChannelTypeEnum.ROBOT.getDesc());
+        List<Map<String, Object>> pushChannelTypeList = new ArrayList<>();
+        Map<String, Object> robot = new HashMap<>();
+        robot.put("code", PushChannelTypeEnum.ROBOT.getCode());
+        robot.put("desc", PushChannelTypeEnum.ROBOT.getDesc());
         pushChannelTypeList.add(robot);
-        Map<String,Object> msg = new HashMap<>();
-        msg.put("code",PushChannelTypeEnum.MESSAGE.getCode());
-        msg.put("desc",PushChannelTypeEnum.MESSAGE.getDesc());
+        Map<String, Object> msg = new HashMap<>();
+        msg.put("code", PushChannelTypeEnum.MESSAGE.getCode());
+        msg.put("desc", PushChannelTypeEnum.MESSAGE.getDesc());
         pushChannelTypeList.add(msg);
-        Map<String,Object> siteMsg = new HashMap<>();
-        siteMsg.put("code",PushChannelTypeEnum.SITEMSG.getCode());
-        siteMsg.put("desc",PushChannelTypeEnum.SITEMSG.getDesc());
+        Map<String, Object> siteMsg = new HashMap<>();
+        siteMsg.put("code", PushChannelTypeEnum.SITEMSG.getCode());
+        siteMsg.put("desc", PushChannelTypeEnum.SITEMSG.getDesc());
         pushChannelTypeList.add(siteMsg);
-        Map<String,Object> email = new HashMap<>();
-        email.put("code",PushChannelTypeEnum.EMAIL.getCode());
-        email.put("desc",PushChannelTypeEnum.EMAIL.getDesc());
+        Map<String, Object> email = new HashMap<>();
+        email.put("code", PushChannelTypeEnum.EMAIL.getCode());
+        email.put("desc", PushChannelTypeEnum.EMAIL.getDesc());
         pushChannelTypeList.add(email);
         res.put("pushChannelType", pushChannelTypeList);
 
@@ -127,25 +140,34 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
 
         try {
             if (null != job) {
-                //判断首次启动还是恢复任务
-                if (TaskStatusEnum.WATIING.getCode() == job.getStatus()) {
-                    quartzService.addJob(job);
-                    //修改任务状态
-                    job.setStatus(TaskStatusEnum.RUNNING.getCode());
-                    this.update(job);
-                    res = true;
-                    info = "启动成功";
-                } else if (TaskStatusEnum.RUNNING.getCode() == job.getStatus()) {
-                    //任务已启动
-                    res = false;
-                    info = "重复启动任务";
-                } else {
-                    quartzService.operateJob(JobOperateEnum.START, job);
-                    //修改任务状态
-                    job.setStatus(TaskStatusEnum.RUNNING.getCode());
-                    this.update(job);
-                    res = true;
-                    info = "恢复任务成功";
+                //判断渠道模板，是否开启
+                PushChannel channel = pushChannelService.getChannelById(String.valueOf(id));
+                MsgTemplate template = msgTemplateService.getTemplateById(String.valueOf(id));
+                if(channel.getStatus() == TemplateChannelStatusEnum.CLOSE.getCode()){
+                    info="渠道【"+channel.getName()+"】未开启，请先开启该推送渠道";
+                }else if(template.getStatus() == TemplateChannelStatusEnum.CLOSE.getCode()){
+                    info="模板【"+template.getName()+"】未开启，请先开启该消息模板";
+                }else{
+                    //判断首次启动还是恢复任务
+                    if (TaskStatusEnum.WATIING.getCode() == job.getStatus()) {
+                        quartzService.addJob(job);
+                        //修改任务状态
+                        job.setStatus(TaskStatusEnum.RUNNING.getCode());
+                        this.update(job);
+                        res = true;
+                        info = "启动成功";
+                    } else if (TaskStatusEnum.RUNNING.getCode() == job.getStatus()) {
+                        //任务已启动
+                        res = false;
+                        info = "重复启动任务";
+                    } else {
+                        quartzService.operateJob(JobOperateEnum.START, job);
+                        //修改任务状态
+                        job.setStatus(TaskStatusEnum.RUNNING.getCode());
+                        this.update(job);
+                        res = true;
+                        info = "恢复任务成功";
+                    }
                 }
             }
         } catch (Exception e) {
@@ -187,7 +209,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         } finally {
             mp.put("res", res);
             mp.put("info", info);
-            mp.put("content",job );
+            mp.put("content", job);
             return mp;
         }
     }
@@ -249,6 +271,22 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         allWrapper.and(lqw -> lqw.eq(ScheduleJob::getCreatorId, userId).like(ScheduleJob::getName, name));
         IPage<ScheduleJob> res = this.page(page, allWrapper);
         return res;
+    }
+
+    @Override
+    public List<ScheduleJob> listScheduleJobsByChannelId(String userId, String channelId, String jobStatus) {
+        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = filterJobByUserIdAndStatus(userId, jobStatus);
+        LambdaQueryWrapper<ScheduleJob> allWrapper = scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getPushChannelId, Integer.valueOf(channelId)));
+        List<ScheduleJob> list = this.list(allWrapper);
+        return list;
+    }
+
+    @Override
+    public List<ScheduleJob> listScheduleJobsByTemplateId(String userId, String templateId, String jobStatus) {
+        LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = filterJobByUserIdAndStatus(userId, jobStatus);
+        LambdaQueryWrapper<ScheduleJob> allWrapper = scheduleJobLambdaQueryWrapper.and(lqw -> lqw.eq(ScheduleJob::getMsgTemplateId, Integer.valueOf(templateId)));
+        List<ScheduleJob> list = this.list(allWrapper);
+        return list;
     }
 
 
@@ -315,7 +353,7 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         job.setPushTimeTypeDesc(PushTimeTypeEnum.getDescByCode(job.getPushTimeType()));
         job.setPushChannelTypeDesc(PushChannelTypeEnum.getDescByCode(job.getPushChannelType()));
         //特地渠道推送任务的信息
-        if(job.getPushChannelType()==PushChannelTypeEnum.ROBOT.getCode()){
+        if (job.getPushChannelType() == PushChannelTypeEnum.ROBOT.getCode()) {
             job.setTemplateRobotPushTypeDesc(WebhookTemplateTypeEnum.getDescByCode(job.getTemplateRobotPushType()));
         }
     }

@@ -72,6 +72,24 @@ public interface ScheduleJobService extends IService<ScheduleJob> {
     IPage<ScheduleJob> listScheduleJobsByName(String userId,String name,Page<ScheduleJob> page);
 
     /**
+    * @todo 根据用户，任务状态 渠道Id,获取任务信息
+    * @date 20/06/11 13:49
+    * @param
+    * @return
+    *
+    */
+    List<ScheduleJob> listScheduleJobsByChannelId(String userId,String channelId,String jobStatus);
+
+    /**
+    * @todo 根据用户，任务状态 模板Id,获取任务信息
+    * @date 20/06/11 13:50
+    * @param
+    * @return
+    *
+    */
+    List<ScheduleJob> listScheduleJobsByTemplateId(String userId,String templateId,String jobStatus);
+
+    /**
      * @todo 计算用户 创建任务的总个数
      * @date 20/05/21 17:53
      * @param 用户id
