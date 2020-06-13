@@ -2,6 +2,7 @@ package com.enn.noticesystem.service.job;
 
 import com.enn.noticesystem.constant.PushChannelTypeEnum;
 import com.enn.noticesystem.constant.RequestType;
+import com.enn.noticesystem.constant.TaskExecStatusEnum;
 import com.enn.noticesystem.constant.WebhookTemplateTypeEnum;
 import com.enn.noticesystem.dao.api.ApiDao;
 import com.enn.noticesystem.domain.Msg;
@@ -10,10 +11,8 @@ import com.enn.noticesystem.domain.vo.ScheduleJobVO;
 import com.enn.noticesystem.service.MsgService;
 import com.enn.noticesystem.service.RuyiService;
 import com.enn.noticesystem.service.ScheduleJobService;
-import com.enn.noticesystem.util.DateUtil;
-import com.enn.noticesystem.util.JsonUtil;
-import com.enn.noticesystem.util.PropertiesUtil;
-import com.enn.noticesystem.util.TemplateUtil;
+import com.enn.noticesystem.util.*;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.quartz.DisallowConcurrentExecution;
@@ -23,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,40 +60,35 @@ public class WebhookJob {
         log.info("执行webHook推送任务。。。");
         job = scheduleJobService.getScheduleJobById(Integer.valueOf(id));
         ScheduleJobVO jobVO = scheduleJobService.getScheduleJobVOById(Integer.valueOf(id));
-        //推送消息
-        log.info("执行任务id=" + id + "的任务,具体信息为:" + jobVO);
 
-        //生成消息id
+        log.info("执行任务id=" + id + "的任务,名称为:" + jobVO.getName());
+
+//        生成消息id
         msg = createMsg(id);
+//        拉取数据
 
-        //解析模板中,获取数据的接口，拉取数据
-        //todo 解析模板的api地址及指标
+        //解析模板的api的请求类型，响应类型及指标
+        Map<String, Object> templateParseMp = parseTemplateParams(jobVO.getTemplateRobotPushTemplate());
+        String reqParams = JsonUtil.getString(templateParseMp.get("reqParams"));
+        String reqType = templateParseMp.get("reqType").toString();
+        String resType = templateParseMp.get("resType").toString();
+        log.info("获取数据时，根据模板生成的请求参数:" + reqParams);
+        //获取数据
+        Map<String, Object> contentMap = ruyiService.getContentByApi(reqParams, reqType, resType);
 
-
-        String  params = "{\"id\":\"2\"}";
-        //拉取数据
-        Map<String, Object> contentMap = ruyiService.getContentByApi(params);
-
-
-        log.info("拉取结果:" + msg.getPullRes());
+        log.info("pull 到的data" + JsonUtil.getString(contentMap));
         if (contentMap.get("code").toString().equals("200")) {
-            //校验拉取数据结果,数据完整性校验
+            //todo 校验拉取数据结果,数据完整性校验
             msg.setPullRes(true);
-
-        }else{
+        } else {
             //重试
-            log.info("获取接口数据异常，启动重试");
-            contentMap = retryPull(params);
-
+            log.info("========获取接口数据异常，启动重试================");
+            contentMap = retryPull(reqParams, reqType, resType);
         }
 
 
-       //数据获取成功
-        if(msg.getPullRes()){
-// */
-//        if (true) {
-//            Map resPullMap = null;
-
+//       数据获取成功,推送数据
+        if (msg.getPullRes()) {
             //根据模板和获取到的数据，拼接content
             String body = genPushJsonStr(jobVO, contentMap);
             //推送消息
@@ -101,12 +96,13 @@ public class WebhookJob {
             Boolean pushRes = pushMsg(webhook, body);
             log.info("推送结果:" + pushRes);
             if (pushRes) {
-                //推送成功,更新任务状态，更新上次执行时间
-                job.setExecStatus(1);
-                job.setLastExecTime(LocalDateTime.now());
-                log.info("推送消息成功");
                 //更新消息推送结果
                 msg.setPushRes(true);
+                //推送成功,更新任务状态，更新上次执行时间
+                job.setExecStatus(TaskExecStatusEnum.SUCCESS.getCode());
+                job.setLastExecTime(LocalDateTime.now());
+                log.info("推送消息成功");
+
             } else {
                 log.warn("推送消息异常，启动重试");
                 //重试
@@ -114,13 +110,67 @@ public class WebhookJob {
             }
             if (!msg.getPushRes()) {
                 //重试之后仍push失败
+                job.setExecStatus(TaskExecStatusEnum.FAILURES.getCode());
                 log.error("重试推送 失败。。。。");
+            }else{
+                job.setExecStatus(TaskExecStatusEnum.SUCCESS.getCode());
             }
         } else {
             //重试之后，仍pull数据失败
             log.error("重试Pull 失败。。。。");
+            job.setExecStatus(TaskExecStatusEnum.FAILURES.getCode());
         }
     }
+
+    /**
+     * @param
+     * @return
+     * @todo 解析模板中的参数
+     * @date 20/06/12 17:23
+     */
+    private Map<String, Object> parseTemplateParams(String templateRobotPushTemplate) {
+        Map<String, Object> res = new HashMap<>();
+
+        Map<String, Object> templateMp = (Map<String, Object>) JsonUtil.getObj(templateRobotPushTemplate);
+//        解析请求参数
+        Map<String, Object> reqParmaMp = new HashMap<>();
+        reqParmaMp.put("apiId", templateMp.get("apiId").toString());
+        reqParmaMp.put("tableName", templateMp.get("tableName"));
+        reqParmaMp.put("datasourceName", templateMp.get("datasourceName").toString());
+        reqParmaMp.put("queryType", "normal");
+        //入参list
+        List<Map<String, Object>> entryList = new ArrayList<>();
+        Map<String, Object> entryParamTime = new HashMap<>();
+        //获取时间相关参数
+        Map<String, Object> timeParameter = (Map<String, Object>) templateMp.get("timeParameter");
+        entryParamTime.put("columnName", timeParameter.get("columnName").toString());
+        //条件表达式，根据起止值，得到日期
+        Map<String, String> dateStr = DateUtil.getDateRangeByCurrentTime(Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
+        entryParamTime.put("conditionType", "condition_equals");
+        entryParamTime.put("startValue", dateStr.get("start"));
+        entryParamTime.put("endValue", dateStr.get("end"));
+        entryList.add(entryParamTime);
+        reqParmaMp.put("enterParam", entryList);
+        //出参list
+        List<Map<String, Object>> outList = new ArrayList<>();
+        List<Map<String, Object>> groupList = (List<Map<String, Object>>) templateMp.get("merticsContent");
+        for (Map<String, Object> group : groupList) {
+            List<Map<String, Object>> metaList = (List<Map<String, Object>>) group.get("metricsList");
+            for (Map<String, Object> meta : metaList) {
+                Map<String, Object> metrics = new HashMap<>();
+                metrics.put("columnName", meta.get("meta"));
+                outList.add(metrics);
+            }
+        }
+        reqParmaMp.put("outParam", outList);
+        res.put("reqParams", reqParmaMp);
+//        解析请求类型
+        res.put("reqType", templateMp.get("requestType"));
+//        解析返回类型
+        res.put("resType", templateMp.get("responseType"));
+        return res;
+    }
+
 
     /**
      * @param
@@ -130,16 +180,18 @@ public class WebhookJob {
      */
     private Map getMarkDownContent(Map data, String templateRobotPushTemplate, String msgTitle) {
         log.info("拼接markdown格式的消息内容");
+        List<Map<String, Object>> lmData = (List<Map<String, Object>>) data.get("metricsData");
         StringBuilder sb = new StringBuilder();
         Map mp = new HashMap();
         //解析用户配置的模板为json字符串
-        Map obj = (Map) JsonUtil.getObj(templateRobotPushTemplate);
-        List<Map<String,Object>> contentMapList = (List<Map<String, Object>>) obj.get("merticsContent");
+        Map<String, Object> obj = (Map) JsonUtil.getObj(templateRobotPushTemplate);
+        List<Map<String, Object>> contentMapList = (List<Map<String, Object>>) obj.get("merticsContent");
 
         //处理消息标题，替换变量为数字
-        String title = TemplateUtil.replaceVar(msgTitle, DateUtil.getYesterdayDate());
-
-        log.info("模板对象：" + obj.toString());
+        Map<String, Object> timeParameter = (Map<String, Object>) obj.get("timeParameter");
+        Map<String, String> ft = DateUtil.getDateRangeByCurrentTime(Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
+        String title = TemplateUtil.replaceVar(msgTitle, DateUtil.getFromToMp(ft.get("from"), ft.get("to")));
+        log.info("消息标题" + title);
         //解析模板中二级标题+指标
         int subTitlelen = contentMapList.size();
 
@@ -148,38 +200,56 @@ public class WebhookJob {
         sb.append("**" + title + "**");
         //循环拼接内容
         //二级标题，按id排序
-        JsonUtil.sortListJsonById(contentMapList);
-        for (int i = 0; i < subTitlelen; i++) {
-            Map<String, Object> contentMap = contentMapList.get(i);
-            String subTitle = contentMap.get("subtitle").toString();
+        JsonUtil.sortListJsonByKey(contentMapList, "id");
+        //遍历指标数据list
+        int dataSize = lmData.size();
+        for (int k = 0; k < dataSize; k++) {
+            Map<String, Object> metricsData = lmData.get(k);
+            //遍历模板中指标，填充数据
+            for (int i = 0; i < subTitlelen; i++) {
+                Map<String, Object> contentMap = contentMapList.get(i);
+                String subTitle = contentMap.get("subtitle").toString();
 
-            //指标按 id 排序
-            List<Map<String,Object>> metricsMapList = (List<Map<String, Object>>) contentMap.get("metricsList");
-            JsonUtil.sortListJsonById(metricsMapList);
-
-
-            sb.append("\n\n");
-            sb.append("**" + subTitle + "**");
-            for (int j = 0; j < metricsMapList.size(); j++) {
-
-                Map<String, Object> metricsMap = metricsMapList.get(j);
-                sb.append("\n");
-                //获取指标名或别名，如果没指定别名，则使用metaName
-                String metricsName = "";
-                String alias = metricsMap.get("alias").toString();
-                if(!"".equals(alias)){
-                    metricsName = alias;
-                }else{
-                    metricsName = metricsMap.get("metaName").toString();
+                //判断指标是否自定义sort，没定义则按 id 排序
+                List<Map<String, Object>> metricsMapList = (List<Map<String, Object>>) contentMap.get("metricsList");
+                int metricCnt = metricsMapList.size();
+                if (metricCnt > 1) {
+                    Boolean sortFlag = false;
+                    for (Map<String, Object> metrics : metricsMapList) {
+                        if ("".equals(metrics.get("sort").toString().trim())) {
+                            break;
+                        }
+                        sortFlag = true; //更加sort排序指标
+                    }
+                    if (!sortFlag) {
+                        JsonUtil.sortListJsonByKey(metricsMapList, "id");
+                    } else {
+                        JsonUtil.sortListJsonByKey(metricsMapList, "sort");
+                    }
                 }
+                sb.append("\n\n");
+                sb.append("**" + subTitle + "**");
+                for (int j = 0; j < metricCnt; j++) {
 
-//                String  metricsData = (String) data.get(metricsMap.get("meta").toString());
-                String  metricsData = "10087";
-
-                sb.append(">" + metricsName + ": <font color=\"info\">" + "${"+metricsMap.get("meta")+"}"+ "</font>");
+                    Map<String, Object> metricsMap = metricsMapList.get(j);
+                    sb.append("\n");
+                    //获取指标名或别名，如果没指定别名，则使用metaName
+                    String metricsName = metricsMap.get("metaName").toString();
+                    String alias = metricsMap.get("alias").toString().trim();
+                    if (!"".equals(alias)) {
+                        metricsName = alias;
+                    }
+                    String metricsValue = metricsData.get(metricsMap.get("meta").toString()).toString();
+                    sb.append(">" + metricsName + ": <font color=\"info\">" + metricsValue + "</font>");
+                }
+            }
+            //APi获取到多条指标数据，则-------分割
+            if (k != dataSize - 1) {
+                sb.append("————————————————————");
             }
         }
-        String content =TemplateUtil.replaceVar( sb.toString(), data);
+
+        String content = sb.toString();
         mp.put("content", content);
         //更新消息内容
         msg.setContent(content);
@@ -194,22 +264,21 @@ public class WebhookJob {
      * @date 20/05/26 14:19
      */
     private String genPushJsonStr(ScheduleJobVO jobVO, Map data) {
-        log.info("根据消息推送类型，拼接请求体");
-
+        log.info("根据消息推送类型，拼接请求体...");
         Integer type = jobVO.getTemplateRobotPushType();
         Map mp = new HashMap<>();
-        if (type==WebhookTemplateTypeEnum.TEXT.getCode()) {
-            //文本
+        if (type == WebhookTemplateTypeEnum.TEXT.getCode()) {
+            //todo 文本
 
-        } else if (WebhookTemplateTypeEnum.MARKDOWN.getCode()== type) {
+        } else if (WebhookTemplateTypeEnum.MARKDOWN.getCode() == type) {
             //markdown
             mp.put("msgtype", "markdown");
             mp.put("markdown", getMarkDownContent(data, jobVO.getTemplateRobotPushTemplate(), jobVO.getSubTitle()));
         } else if (WebhookTemplateTypeEnum.IMAGE.getCode() == type) {
-            //图片
+            //todo 图片
 
         } else if (WebhookTemplateTypeEnum.NEWS.getCode() == type) {
-            //图文
+            //todo 图文
         }
         return JsonUtil.getString(mp);
     }
@@ -236,7 +305,7 @@ public class WebhookJob {
      */
     public Boolean pushMsg(String webhook, String body) {
         Response response = apiDao.syncSend(true, webhook, RequestType.POST, body);
-        if(200 == response.code()){
+        if (200 == response.code()) {
             try {
                 String res = response.body().string();
                 Map mp = (Map) JsonUtil.getObj(res);
@@ -248,7 +317,7 @@ public class WebhookJob {
             } catch (IOException e) {
                 log.error("推送数据异常:" + e.getMessage());
             }
-        }else{
+        } else {
             log.error("微信webhook服务器响应异常");
         }
         msg.setPushRes(false);
@@ -287,14 +356,14 @@ public class WebhookJob {
      * @todo 立即重试拉取数据
      * @date 20/05/28 15:35
      */
-    public Map retryPull(String params) {
+    public Map retryPull(String params, String reqType, String resType) {
         Map map = new HashMap();
         Integer interval = Integer.valueOf(PropertiesUtil.getProperty("retry.internal"));
         Integer count = Integer.valueOf(PropertiesUtil.getProperty("retry.count"));
         for (int i = 0; i < count; i++) {
             try {
                 Thread.sleep(interval * 1000);
-                map = ruyiService.getContentByApi(params);
+                map = ruyiService.getContentByApi(params, reqType, resType);
                 if (map.get("code").toString().equals("200")) {
                     msg.setPushRes(true);
                     break;

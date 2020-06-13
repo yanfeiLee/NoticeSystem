@@ -235,7 +235,7 @@ public class MsgTemplateController {
                 "        }\n" +
                 "    ]\n" +
                 "}";
-        Map<String, Object> contentByApi = ruyiService.getContentByApi(params);
+        Map<String, Object> contentByApi = ruyiService.getContentByApi(params,"1","1");
         return JsonUtil.getString(contentByApi);
     }
 }

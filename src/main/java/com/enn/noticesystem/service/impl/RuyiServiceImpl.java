@@ -1,6 +1,7 @@
 package com.enn.noticesystem.service.impl;
 
 import com.enn.noticesystem.constant.RequestType;
+import com.enn.noticesystem.constant.ResponseType;
 import com.enn.noticesystem.dao.api.ApiDao;
 import com.enn.noticesystem.service.RuyiService;
 import com.enn.noticesystem.util.CommonUtil;
@@ -49,8 +50,11 @@ public class RuyiServiceImpl implements RuyiService {
     @Override
     public Map<String, Object> listApis(Map<String,Object> params) {
         String url = getRuyiAddr() + PropertiesUtil.getProperty("ruyi.api.list");
-        //指定topicId
-        params.put("topicId",PropertiesUtil.getProperty("ruyi.api.topicId") );
+        //判断是否根据topic获取分组
+        if(Boolean.valueOf(PropertiesUtil.getProperty("ruyi.api.isListApiByTopic"))){
+            //指定topicId
+            params.put("topicId",PropertiesUtil.getProperty("ruyi.api.topicId") );
+        }
         Response response = apiDao.syncSend(
                 CommonUtil.isHttps(PropertiesUtil.getProperty("ruyi.protocol")),
                 url,
@@ -119,8 +123,8 @@ public class RuyiServiceImpl implements RuyiService {
     }
 
     @Override
-    public Map<String, Object> getContentByApi(String params) {
-        //todo 根据meta拼接请求body 解析请求类型 及 参数
+    public Map<String, Object> getContentByApi(String params,String reqType,String resType) {
+
         Map<String, Object> resMap = new HashMap<>();
         resMap.put("metricsData", "");
         resMap.put("code", "");
@@ -129,18 +133,17 @@ public class RuyiServiceImpl implements RuyiService {
         String api = getRuyiAddr() + PropertiesUtil.getProperty("ruyi.api.dataList");
         Response response = apiDao.syncSend(CommonUtil.isHttps(PropertiesUtil.getProperty("ruyi.protocol")),
                 api,
-                RequestType.POST,
+                CommonUtil.getRequstTypeByCode(reqType),
                 params);
         try {
             if (200 == response.code()) {
-                Map<String, Object> responseMap = JsonUtil.getMap(response.body().string());
-                if (responseMap.get("code").toString().equals("200")) {
-                    List<Map<String, Object>> metricsDataist = (List<Map<String, Object>>) responseMap.get("result_list");
-                    resMap.put("metricsData", metricsDataist);
-                    resMap.put("code", "200");
-                } else {
-                    log.info("服务器响应正常，但获取data list失败");
+                if(ResponseType.JSON.getCode().toString().equals(resType)){
+                    String resJsonStr = response.body().string();
+                    processJsonResponse(resJsonStr,resMap);
+                }else{
+                    //todo 处理其他返回类型的数据
                 }
+
             } else {
                 log.error("服务器响应异常");
             }
@@ -150,6 +153,23 @@ public class RuyiServiceImpl implements RuyiService {
         }
 
         return resMap;
+    }
+    /**
+    * @todo 处理返回Json类型的数据
+    * @date 20/06/13 22:18
+    * @param
+    * @return
+    *
+    */
+    private void processJsonResponse(String resJsonStr,Map<String, Object> resMap) {
+        Map<String, Object> responseMap = JsonUtil.getMap(resJsonStr);
+        if (responseMap.get("code").toString().equals("200")) {
+            List<Map<String, Object>> metricsDataist = (List<Map<String, Object>>) responseMap.get("result_list");
+            resMap.put("metricsData", metricsDataist);
+            resMap.put("code", "200");
+        } else {
+            log.warn("服务器响应正常，但获取data list失败");
+        }
     }
 
 

@@ -34,10 +34,10 @@ public interface RuyiService {
     Map<String,Object> listMetas(String params);
 
     /**
-    * @todo 根据api地址，及指定资源，获取对应数据
+    * @todo 根据api地址 及请求类型 返回类型，及指定资源，获取对应数据
     * @date 20/05/22 17:30
     * @param
     * @return
     */
-    Map<String,Object> getContentByApi(String params);
+    Map<String,Object> getContentByApi(String params,String reqType,String resType);
 }

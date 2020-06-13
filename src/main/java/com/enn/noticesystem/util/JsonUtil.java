@@ -63,11 +63,11 @@ public class JsonUtil {
      * @todo 排序list中的map对象，通过map的id
      * @date 20/05/28 18:29
      */
-    public static void sortListJsonById(List<Map<String, Object>> lm) {
+    public static void sortListJsonByKey(List<Map<String, Object>> lm,String sortKey) {
         Collections.sort(lm, new Comparator<Map<String, Object>>() {
             public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-                Integer id1 = Integer.valueOf(o1.get("id").toString());
-                Integer id2 = Integer.valueOf(o2.get("id").toString());
+                Integer id1 = Integer.valueOf(o1.get(sortKey).toString());
+                Integer id2 = Integer.valueOf(o2.get(sortKey).toString());
                 return id1.compareTo(id2);
             }
         });

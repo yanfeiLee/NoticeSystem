@@ -141,8 +141,8 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
         try {
             if (null != job) {
                 //判断渠道模板，是否开启
-                PushChannel channel = pushChannelService.getChannelById(String.valueOf(id));
-                MsgTemplate template = msgTemplateService.getTemplateById(String.valueOf(id));
+                PushChannel channel = pushChannelService.getChannelById(String.valueOf(job.getPushChannelId()));
+                MsgTemplate template = msgTemplateService.getTemplateById(String.valueOf(job.getMsgTemplateId()));
                 if(channel.getStatus() == TemplateChannelStatusEnum.CLOSE.getCode()){
                     info="渠道【"+channel.getName()+"】未开启，请先开启该推送渠道";
                 }else if(template.getStatus() == TemplateChannelStatusEnum.CLOSE.getCode()){

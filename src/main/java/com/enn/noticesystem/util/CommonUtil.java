@@ -1,5 +1,7 @@
 package com.enn.noticesystem.util;
 
+import com.enn.noticesystem.constant.RequestType;
+import com.enn.noticesystem.constant.ResponseType;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.util.HashMap;
@@ -59,5 +61,44 @@ public class CommonUtil {
             }
         }
         return res;
+    }
+
+
+    /**
+    * @todo 依据请求类型code，返回请求类型
+    * @date 20/06/12 17:40
+    * @param
+    * @return
+    *
+    */
+    public static RequestType getRequstTypeByCode(String code){
+        RequestType rt=RequestType.GET;
+        if(RequestType.POST.getCode().toString().equals(code)){
+            rt =  RequestType.POST;
+        }else if(RequestType.GET.getCode().toString().equals(code)){
+
+        }else{
+
+        }
+        return rt;
+    }
+
+    /**
+    * @todo 依据响应code,判断响应类型
+    * @date 20/06/12 17:42
+    * @param
+    * @return
+    *
+    */
+    public static ResponseType getResponseTypeByCode(String code){
+        ResponseType rt = ResponseType.JSON;
+        if(ResponseType.XML.getCode().toString().equals(code)){
+            rt = ResponseType.XML;
+        }else{
+
+        }
+
+
+        return rt;
     }
 }

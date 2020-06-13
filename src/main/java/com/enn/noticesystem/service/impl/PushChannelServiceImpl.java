@@ -31,7 +31,8 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
     private LambdaQueryWrapper<PushChannel> filterUserAndType(String userId, String type) {
         LambdaQueryWrapper<PushChannel> pushChannelLambdaQueryWrapper = new LambdaQueryWrapper<>();
         pushChannelLambdaQueryWrapper.and(lqw -> lqw.eq(PushChannel::getCreatorId, userId)
-                .eq(PushChannel::getType,type)).orderByDesc(PushChannel::getCreatedTime);;
+                .eq(PushChannel::getType, type)).orderByDesc(PushChannel::getCreatedTime);
+        ;
 
         return pushChannelLambdaQueryWrapper;
     }
@@ -69,9 +70,11 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
 
     @Override
     public PushChannel getChannelById(String id) {
-        log.info("获取id="+id+"的渠道信息");
+        log.info("获取id=" + id + "的渠道信息");
         PushChannel res = this.getById(id);
-        this.addDesc(res);
+        if (null != res) {
+            this.addDesc(res);
+        }
         return res;
     }
 
@@ -82,7 +85,7 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
 
         IPage<PushChannel> res = this.page(page, allWrapper);
 
-        log.info("根据渠道名，获取渠道list:size=" +res.getRecords().size());
+        log.info("根据渠道名，获取渠道list:size=" + res.getRecords().size());
         return res;
     }
 
@@ -98,17 +101,17 @@ public class PushChannelServiceImpl extends ServiceImpl<PushChannelMapper, PushC
 
     @Override
     public IPage<PushChannel> listPagesByType(IPage<PushChannel> page, String userId, String type) {
-        log.info("获取type="+type+"的分页信息");
+        log.info("获取type=" + type + "的分页信息");
         IPage<PushChannel> res = this.page(page, filterUserAndType(userId, type));
         return res;
     }
 
     @Override
     public IPage<PushChannel> listPagesByTypeAndStatus(IPage<PushChannel> page, String userId, String type, String status) {
-        log.info("获取type"+type+"status="+status+"的渠道list");
+        log.info("获取type" + type + "status=" + status + "的渠道list");
         LambdaQueryWrapper<PushChannel> pushChannelLambdaQueryWrapper = filterUserAndType(userId, type);
         LambdaQueryWrapper<PushChannel> allWrapper = pushChannelLambdaQueryWrapper.and(lqw -> lqw.eq(PushChannel::getStatus, status));
-        IPage<PushChannel> res = this.page(page,allWrapper );
+        IPage<PushChannel> res = this.page(page, allWrapper);
         return res;
     }
 
