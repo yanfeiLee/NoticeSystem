@@ -42,7 +42,7 @@ public class TemplateUtil {
             return writer.toString();
         } catch (Exception e) {
             log.info("模板解析异常:"+e.getMessage());
-            return "";
+            return "标题中存在不支持的自定义变量";
         }
 
     }

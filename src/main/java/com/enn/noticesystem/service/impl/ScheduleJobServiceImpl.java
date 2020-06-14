@@ -16,12 +16,14 @@ import com.enn.noticesystem.service.PushChannelService;
 import com.enn.noticesystem.service.QuartzService;
 import com.enn.noticesystem.service.ScheduleJobService;
 import com.enn.noticesystem.service.job.WebhookJob;
+import com.enn.noticesystem.util.SpringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -148,25 +150,40 @@ public class ScheduleJobServiceImpl extends ServiceImpl<ScheduleJobMapper, Sched
                 }else if(template.getStatus() == TemplateChannelStatusEnum.CLOSE.getCode()){
                     info="模板【"+template.getName()+"】未开启，请先开启该消息模板";
                 }else{
-                    //判断首次启动还是恢复任务
-                    if (TaskStatusEnum.WATIING.getCode() == job.getStatus()) {
-                        quartzService.addJob(job);
-                        //修改任务状态
+                    //判断任务 推送时间类型
+                    if(job.getPushTimeType()==PushTimeTypeEnum.IMMEDIATELY.getCode()){
+                        //启动推送
+                        Object object = SpringUtil.getBean(job.getServiceName());
+                        try {
+                            //利用反射执行对应方法
+                            Method method = object.getClass().getMethod(job.getMethodName(),String.class);
+                            method.invoke(object,job.getId().toString());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         job.setStatus(TaskStatusEnum.RUNNING.getCode());
                         this.update(job);
-                        res = true;
-                        info = "启动成功";
-                    } else if (TaskStatusEnum.RUNNING.getCode() == job.getStatus()) {
-                        //任务已启动
-                        res = false;
-                        info = "重复启动任务";
-                    } else {
-                        quartzService.operateJob(JobOperateEnum.START, job);
-                        //修改任务状态
-                        job.setStatus(TaskStatusEnum.RUNNING.getCode());
-                        this.update(job);
-                        res = true;
-                        info = "恢复任务成功";
+                    }else{
+                        //判断首次启动还是恢复任务
+                        if (TaskStatusEnum.WATIING.getCode() == job.getStatus()) {
+                            quartzService.addJob(job);
+                            //修改任务状态
+                            job.setStatus(TaskStatusEnum.RUNNING.getCode());
+                            this.update(job);
+                            res = true;
+                            info = "启动成功";
+                        } else if (TaskStatusEnum.RUNNING.getCode() == job.getStatus()) {
+                            //任务已启动
+                            res = false;
+                            info = "重复启动任务";
+                        } else {
+                            quartzService.operateJob(JobOperateEnum.START, job);
+                            //修改任务状态
+                            job.setStatus(TaskStatusEnum.RUNNING.getCode());
+                            this.update(job);
+                            res = true;
+                            info = "恢复任务成功";
+                        }
                     }
                 }
             }

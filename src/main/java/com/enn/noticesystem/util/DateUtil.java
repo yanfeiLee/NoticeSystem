@@ -93,15 +93,19 @@ public class DateUtil {
 //
 //    }
 
-    public static Map<String,String> getDateRangeByCurrentTime(Integer from,Integer to){
+    public static Map<String,String> getDateRangeByCurrentTime(Boolean isNegative,Integer from,Integer to){
+        int factor = -1;
+        if(!isNegative){
+            factor = -1*factor;
+        }
         String fmt="yyyy-MM-dd";
         Map<String,String> res = new HashMap<>();
         Calendar curr = Calendar.getInstance();
-        curr.add(Calendar.DATE, from);
+        curr.add(Calendar.DATE, factor*from);
         res.put("start", formatDate(curr.getTime(), fmt));
 
         curr = Calendar.getInstance();
-        curr.add(Calendar.DATE,to);
+        curr.add(Calendar.DATE,factor*to);
         res.put("end", formatDate(curr.getTime(), fmt));
         return res;
     }

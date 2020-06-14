@@ -22,8 +22,8 @@ public class InitJobSchedule implements CommandLineRunner {
      */
     @Override
     public void run(String... strings) throws Exception {
-        log.info("系统启动，初始化定时任务");
+        log.info("==================系统启动，初始化定时任务==================");
         quartzService.timingTask();
-        log.info("初始化定时任务结束");
+        log.info("==============初始化定时任务结束============");
     }
 }

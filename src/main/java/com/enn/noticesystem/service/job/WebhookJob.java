@@ -22,10 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Project: NoticeSystem
@@ -120,6 +117,10 @@ public class WebhookJob {
             log.error("重试Pull 失败。。。。");
             job.setExecStatus(TaskExecStatusEnum.FAILURES.getCode());
         }
+        //更新任务状态
+        scheduleJobService.update(job);
+        //更新消息状态
+        msgService.update(msg);
     }
 
     /**
@@ -138,20 +139,29 @@ public class WebhookJob {
         reqParmaMp.put("tableName", templateMp.get("tableName"));
         reqParmaMp.put("datasourceName", templateMp.get("datasourceName").toString());
         reqParmaMp.put("queryType", "normal");
-        //入参list
+//        入参list
         List<Map<String, Object>> entryList = new ArrayList<>();
-        Map<String, Object> entryParamTime = new HashMap<>();
         //获取时间相关参数
-        Map<String, Object> timeParameter = (Map<String, Object>) templateMp.get("timeParameter");
-        entryParamTime.put("columnName", timeParameter.get("columnName").toString());
-        //条件表达式，根据起止值，得到日期
-        Map<String, String> dateStr = DateUtil.getDateRangeByCurrentTime(Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
-        entryParamTime.put("conditionType", "condition_equals");
-        entryParamTime.put("startValue", dateStr.get("start"));
-        entryParamTime.put("endValue", dateStr.get("end"));
-        entryList.add(entryParamTime);
+        if(null != templateMp.get("timeParameter")){
+            Map<String, Object> entryParamTime = new HashMap<>();
+            Map<String, Object> timeParameter = (Map<String, Object>) templateMp.get("timeParameter");
+            entryParamTime.put("columnName", timeParameter.get("columnName").toString());
+            //条件表达式，根据起止值，得到日期
+            Map<String, String> dateStr = DateUtil.getDateRangeByCurrentTime(true,Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
+            entryParamTime.put("conditionType", "condition_equals");
+            entryParamTime.put("startValue", dateStr.get("start"));
+            entryParamTime.put("endValue", dateStr.get("end"));
+            entryList.add(entryParamTime);
+        }
+        //todo 测试公司
+        Map<String, Object> companyMp = new HashMap<>();
+        companyMp.put("columnName", "company_id");
+        companyMp.put("conditionType", "equals");
+        companyMp.put("defaultValue", 91427);
+        entryList.add(companyMp);
         reqParmaMp.put("enterParam", entryList);
-        //出参list
+
+//        出参list
         List<Map<String, Object>> outList = new ArrayList<>();
         List<Map<String, Object>> groupList = (List<Map<String, Object>>) templateMp.get("merticsContent");
         for (Map<String, Object> group : groupList) {
@@ -178,7 +188,7 @@ public class WebhookJob {
      * @todo 根据用户选择的指标，拼接推送消息的MarkDown格式的Json串
      * @date 20/05/26 14:20
      */
-    private Map getMarkDownContent(Map data, String templateRobotPushTemplate, String msgTitle) {
+        private Map getMarkDownContent(Map data, String templateRobotPushTemplate, String msgTitle) {
         log.info("拼接markdown格式的消息内容");
         List<Map<String, Object>> lmData = (List<Map<String, Object>>) data.get("metricsData");
         StringBuilder sb = new StringBuilder();
@@ -188,9 +198,16 @@ public class WebhookJob {
         List<Map<String, Object>> contentMapList = (List<Map<String, Object>>) obj.get("merticsContent");
 
         //处理消息标题，替换变量为数字
-        Map<String, Object> timeParameter = (Map<String, Object>) obj.get("timeParameter");
-        Map<String, String> ft = DateUtil.getDateRangeByCurrentTime(Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
-        String title = TemplateUtil.replaceVar(msgTitle, DateUtil.getFromToMp(ft.get("from"), ft.get("to")));
+        String title =  msgTitle;
+        if(null != obj.get("timeParameter")){
+            Map<String, Object> timeParameter = (Map<String, Object>) obj.get("timeParameter");
+            Map<String, String> ft = DateUtil.getDateRangeByCurrentTime(true,Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
+            title = TemplateUtil.replaceVar(msgTitle, DateUtil.getFromToMp(ft.get("start"), ft.get("end")));
+        }else{
+            //不设置日期参数，则选取当前时间，生成用户变量map
+            String from = DateUtil.formatDate(new Date(), DateUtil.DT_FORMAT);
+            title = TemplateUtil.replaceVar(msgTitle, DateUtil.getFromToMp(from,from));
+        }
         log.info("消息标题" + title);
         //解析模板中二级标题+指标
         int subTitlelen = contentMapList.size();
@@ -219,7 +236,7 @@ public class WebhookJob {
                         if ("".equals(metrics.get("sort").toString().trim())) {
                             break;
                         }
-                        sortFlag = true; //更加sort排序指标
+                        sortFlag = true; //根据sort排序指标
                     }
                     if (!sortFlag) {
                         JsonUtil.sortListJsonByKey(metricsMapList, "id");
@@ -245,7 +262,8 @@ public class WebhookJob {
             }
             //APi获取到多条指标数据，则-------分割
             if (k != dataSize - 1) {
-                sb.append("————————————————————");
+                sb.append("\n\n");
+                sb.append("**—————————————**");
             }
         }
 
