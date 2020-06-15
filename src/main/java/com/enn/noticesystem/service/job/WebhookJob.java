@@ -109,7 +109,7 @@ public class WebhookJob {
                 //重试之后仍push失败
                 job.setExecStatus(TaskExecStatusEnum.FAILURES.getCode());
                 log.error("重试推送 失败。。。。");
-            }else{
+            } else {
                 job.setExecStatus(TaskExecStatusEnum.SUCCESS.getCode());
             }
         } else {
@@ -142,12 +142,12 @@ public class WebhookJob {
 //        入参list
         List<Map<String, Object>> entryList = new ArrayList<>();
         //获取时间相关参数
-        if(null != templateMp.get("timeParameter")){
+        if (null != templateMp.get("timeParameter")) {
             Map<String, Object> entryParamTime = new HashMap<>();
             Map<String, Object> timeParameter = (Map<String, Object>) templateMp.get("timeParameter");
             entryParamTime.put("columnName", timeParameter.get("columnName").toString());
             //条件表达式，根据起止值，得到日期
-            Map<String, String> dateStr = DateUtil.getDateRangeByCurrentTime(true,Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
+            Map<String, String> dateStr = DateUtil.getDateRangeByCurrentTime(true, Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
             entryParamTime.put("conditionType", "condition_equals");
             entryParamTime.put("startValue", dateStr.get("start"));
             entryParamTime.put("endValue", dateStr.get("end"));
@@ -188,7 +188,7 @@ public class WebhookJob {
      * @todo 根据用户选择的指标，拼接推送消息的MarkDown格式的Json串
      * @date 20/05/26 14:20
      */
-        private Map getMarkDownContent(Map data, String templateRobotPushTemplate, String msgTitle) {
+    private Map getMarkDownContent(Map data, String templateRobotPushTemplate, String msgTitle) {
         log.info("拼接markdown格式的消息内容");
         List<Map<String, Object>> lmData = (List<Map<String, Object>>) data.get("metricsData");
         StringBuilder sb = new StringBuilder();
@@ -198,15 +198,15 @@ public class WebhookJob {
         List<Map<String, Object>> contentMapList = (List<Map<String, Object>>) obj.get("merticsContent");
 
         //处理消息标题，替换变量为数字
-        String title =  msgTitle;
-        if(null != obj.get("timeParameter")){
+        String title = msgTitle;
+        if (null != obj.get("timeParameter")) {
             Map<String, Object> timeParameter = (Map<String, Object>) obj.get("timeParameter");
-            Map<String, String> ft = DateUtil.getDateRangeByCurrentTime(true,Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
+            Map<String, String> ft = DateUtil.getDateRangeByCurrentTime(true, Integer.valueOf(timeParameter.get("startValue").toString()), Integer.valueOf(timeParameter.get("endValue").toString()));
             title = TemplateUtil.replaceVar(msgTitle, DateUtil.getFromToMp(ft.get("start"), ft.get("end")));
-        }else{
+        } else {
             //不设置日期参数，则选取当前时间，生成用户变量map
             String from = DateUtil.formatDate(new Date(), DateUtil.DT_FORMAT);
-            title = TemplateUtil.replaceVar(msgTitle, DateUtil.getFromToMp(from,from));
+            title = TemplateUtil.replaceVar(msgTitle, DateUtil.getFromToMp(from, from));
         }
         log.info("消息标题" + title);
         //解析模板中二级标题+指标
@@ -323,8 +323,8 @@ public class WebhookJob {
      */
     public Boolean pushMsg(String webhook, String body) {
         Response response = apiDao.syncSend(true, webhook, RequestType.POST, body);
-        if (200 == response.code()) {
-            try {
+        try {
+            if (200 == response.code()) {
                 String res = response.body().string();
                 Map mp = (Map) JsonUtil.getObj(res);
                 Integer errcode = (Integer) mp.get("errcode");
@@ -332,12 +332,15 @@ public class WebhookJob {
                     msg.setPushRes(true);
                     return true;
                 }
-            } catch (IOException e) {
-                log.error("推送数据异常:" + e.getMessage());
+            } else {
+                log.error("微信webhook服务器响应异常");
             }
-        } else {
-            log.error("微信webhook服务器响应异常");
+        } catch (IOException e) {
+            log.error("推送数据异常:" + e.getMessage());
+        } finally {
+            response.close();
         }
+
         msg.setPushRes(false);
         return false;
     }

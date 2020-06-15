@@ -150,6 +150,8 @@ public class RuyiServiceImpl implements RuyiService {
         } catch (IOException e) {
             log.error("响应数据转String 异常" + e.getMessage());
             e.printStackTrace();
+        }finally {
+            response.close();
         }
 
         return resMap;
