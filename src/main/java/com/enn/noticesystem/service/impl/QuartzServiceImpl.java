@@ -3,6 +3,7 @@ package com.enn.noticesystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.enn.noticesystem.constant.JobOperateEnum;
+import com.enn.noticesystem.constant.PushTimeTypeEnum;
 import com.enn.noticesystem.constant.TaskStatusEnum;
 import com.enn.noticesystem.domain.ScheduleJob;
 import com.enn.noticesystem.plugin.quartz.QuartzFactory;
@@ -38,12 +39,13 @@ public class QuartzServiceImpl implements QuartzService {
 
     @Override
     public void timingTask() {
-        //系统重启或首次启动时查询数据库是否存在需要定时的任务
+        //系统重启或首次启动时查询数据库是否存在需要定时的任务,type=2
         //启动status=1（运行中）的任务，
         LambdaQueryWrapper<ScheduleJob> scheduleJobLambdaQueryWrapper = new LambdaQueryWrapper<>();
         scheduleJobLambdaQueryWrapper.and(
-                //过滤未启动任务
+                //过滤未启动任务及type=1 立即执行的任务
                 lqw -> lqw.ne(ScheduleJob::getStatus, TaskStatusEnum.WATIING.getCode())
+                .eq(ScheduleJob::getPushTimeType ,PushTimeTypeEnum.PERIODIC.getCode())
         );
         List<ScheduleJob> scheduleJobs = jobService.list(scheduleJobLambdaQueryWrapper);
         if (scheduleJobs != null) {

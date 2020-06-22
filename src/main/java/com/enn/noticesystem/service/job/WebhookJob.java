@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -268,10 +269,20 @@ public class WebhookJob {
         }
 
         String content = sb.toString();
+        //消息内容长度判断
+        String maxLen = PropertiesUtil.getProperty("channel.webhook.maxLength");
+        try {
+            int len = content.getBytes("UTF-8").length;
+            if(len>Integer.valueOf(maxLen)){
+                content="推送消息内容，超过最大限制"+maxLen+"KB";
+            }
+        } catch (UnsupportedEncodingException e) {
+            log.error("提示: 推送消息内容的长度超过最大限制"+maxLen+"KB");
+            e.printStackTrace();
+        }
         mp.put("content", content);
         //更新消息内容
         msg.setContent(content);
-
         return mp;
     }
 
